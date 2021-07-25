@@ -54,7 +54,7 @@ fn decode() {
             skip = false; // the only time we only want single bytes
             continue
         } else if state == u16::MAX { // export and reset
-            eprintln!("Exporing step . . .");
+            // eprintln!("Exporing step . . .");
             export_json(mapping.clone());
             district = 0;
             prev_byte = 0;
@@ -90,7 +90,7 @@ fn encode() {
         let mut line = String::new();
         let bytes = std::io::stdin().read_line(&mut line).unwrap();
         if bytes == 0 { // EOF; reset
-            continue
+            break
         }
         if line.contains("END") {
             counter = 0;
@@ -103,9 +103,9 @@ fn encode() {
 
                 prev_mapping = mapping.clone();
                 first = false;
-                eprintln!("Mapping: {:?}", mapping);
-                eprintln!("Diff: {:?}", diff);
-                eprintln!("Written!");
+                // eprintln!("Mapping: {:?}", mapping);
+                // eprintln!("Diff: {:?}", diff);
+                // eprintln!("Written!");
             }
             continue // continue expecting more
         }
