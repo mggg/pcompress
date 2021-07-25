@@ -10,3 +10,12 @@ To decode, simply pipe the compressed output into `PartitionCompress --decode`.
 
 ## Binary Representation
 TODO: document this.
+
+## Further compression
+If you want to compress the output file further, `xz` is recommended.
+With `xz` and PartitionCompress, quite a few orders of magnitude of compression can be achieved.
+
+E.g.:
+```
+xz -9 -k chain.output
+```

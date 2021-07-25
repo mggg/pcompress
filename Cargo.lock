@@ -3,6 +3,14 @@
 version = 3
 
 [[package]]
+name = "PartitionCompress"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+ "structopt",
+]
+
+[[package]]
 name = "ansi_term"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -78,14 +86,6 @@ name = "libc"
 version = "0.2.98"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "320cfe77175da3a483efed4bc0adc1968ca050b098ce4f2f1c13a56626128790"
-
-[[package]]
-name = "mapcompress"
-version = "0.1.0"
-dependencies = [
- "serde_json",
- "structopt",
-]
 
 [[package]]
 name = "proc-macro-error"
