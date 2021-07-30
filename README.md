@@ -19,3 +19,11 @@ E.g.:
 ```
 xz -9 -k chain.output
 ```
+
+## TODOs
+- [ ] better checking/guarding against overflows
+- [ ] variable sizes
+- [ ] header format?
+- [ ] rewind functionality
+- [ ] poc of GerryChain Python and Julia rewind/replay
+
