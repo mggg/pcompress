@@ -57,11 +57,15 @@ fn decode(location: usize) {
             skip = false; // the only time we only want single bytes
             continue
         } else if state == u16::MAX { // export and reset
-            export_json(mapping.clone());
-            counter += 1;
-            if counter == location && location != 0 {
-                break
+            if location != 0 {
+                if counter == location && location != 0 {
+                    export_json(mapping.clone());
+                    break
+                }
+            } else {
+                export_json(mapping.clone());
             }
+            counter += 1;
             district = 0;
             prev_byte = 0;
             continue
