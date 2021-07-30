@@ -11,18 +11,22 @@ use structopt::StructOpt;
 struct Opt {
     #[structopt(short = "d", long = "decode")]
     decode: bool,
+
+    #[structopt(short = "l", long = "location", help = "Replay a specific step of a chain (zero-indexed). Zero replays all.", default_value = "0")]
+    location: usize,
 }
 
 fn main() {
     let opt = Opt::from_args();
     if opt.decode {
-        decode();
+        decode(opt.location);
     } else {
         encode();
     }
 }
 
-fn decode() {
+fn decode(location: usize) {
+    let mut counter = 0;
     let mut district = 0;
     let mut prev_byte = 0;
     let mut mapping: Vec<usize> = Vec::new();
@@ -43,7 +47,6 @@ fn decode() {
 
         if new_district {
             district += u8::from_be_bytes([byte]);
-            // eprintln!("Increment: {}, {}", u8::from_be_bytes([byte]), district);
             new_district = false;
             continue
         }
@@ -54,8 +57,11 @@ fn decode() {
             skip = false; // the only time we only want single bytes
             continue
         } else if state == u16::MAX { // export and reset
-            // eprintln!("Exporing step . . .");
             export_json(mapping.clone());
+            counter += 1;
+            if counter == location && location != 0 {
+                break
+            }
             district = 0;
             prev_byte = 0;
             continue
@@ -103,9 +109,6 @@ fn encode() {
 
                 prev_mapping = mapping.clone();
                 first = false;
-                // eprintln!("Mapping: {:?}", mapping);
-                // eprintln!("Diff: {:?}", diff);
-                // eprintln!("Written!");
             }
             continue // continue expecting more
         }
