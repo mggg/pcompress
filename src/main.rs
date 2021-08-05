@@ -4,7 +4,6 @@ use std::io::BufWriter;
 use structopt::StructOpt;
 use std::cmp;
 
-
 #[derive(Debug, StructOpt, Clone)]
 #[structopt(
     name = "PartitionCompress",
@@ -96,17 +95,23 @@ fn export_json<W: std::io::Write>(mut writer: BufWriter<W>, mapping: Vec<usize>)
 
 fn encode() {
     let mut first = true; // only used for a plausibilty check; can be removed
-    let max_district: usize = 0; // district must be zero-indexed
+    let mut written = false; // only used for a plausibilty check; can be removed
+    let mut max_district: usize = 0; // district must be zero-indexed
     let mut prev_mapping: Vec<usize> = Vec::with_capacity(65536);
+    let mut diff: Vec<Vec<usize>> = vec![vec![]; max_district];
     // let mut prev_mapping: Vec<usize> = vec![0; 65536];
     let mut mapping = prev_mapping.clone();
 
-    let stdout = std::io::stdout();
-    let mut writer = std::io::BufWriter::with_capacity(usize::pow(2, 18), stdout.lock());
+    let stdin = std::io::stdin();
+    let mut reader = std::io::BufReader::with_capacity(usize::pow(2, 22), stdin.lock());
+    // let mut reader = std::io::BufReader::new(stdin.lock());
 
+    let stdout = std::io::stdout();
+    let mut writer = std::io::BufWriter::with_capacity(usize::pow(2, 22), stdout.lock());
+
+    let mut line = String::new();
     loop {
-        let mut line = String::new();
-        let bytes = std::io::stdin().read_line(&mut line).unwrap();
+        let bytes = reader.read_line(&mut line).unwrap();
         if bytes == 0 { // EOF; reset
             break
         }
@@ -114,15 +119,10 @@ fn encode() {
         prev_mapping.resize(mapping.len()+1, 0);
         let (diff, max_district, written) = compute_diff(&prev_mapping, max_district, &mapping);
         if written {
-            let max_node = mapping.len();
-            // export_diff(diff, max_node, max_district, first);
-
-            writer = export_diff(writer, diff.clone(), max_node, first);
-
-            prev_mapping = mapping.clone();
-            first = false;
+            writer = export_diff(writer, diff, first);
+            prev_mapping = mapping;
         }
-        continue // continue expecting more
+        line.clear();
     }
 
     writer.flush().unwrap();
@@ -130,7 +130,7 @@ fn encode() {
 
 fn compute_diff(prev_mapping: &Vec<usize>, mut max_district: usize, new_mapping: &Vec<usize>) -> (Vec<Vec<usize>>, usize, bool) {
     let mut written = false;
-    let mut assignment: Vec<Vec<usize>> = vec![vec![]; 40];
+    let mut assignment: Vec<Vec<usize>> = vec![vec![]; max_district];
     for (node, district) in new_mapping.iter().enumerate() {
         if prev_mapping[node] != *district { // update
             written = true;
@@ -143,7 +143,7 @@ fn compute_diff(prev_mapping: &Vec<usize>, mut max_district: usize, new_mapping:
     (assignment, max_district, written)
 }
 
-fn export_diff<W: std::io::Write>(mut writer: BufWriter<W>, assignment: Vec<Vec<usize>>, max_node: usize, first: bool) -> BufWriter<W> {
+fn export_diff<W: std::io::Write>(mut writer: BufWriter<W>, assignment: Vec<Vec<usize>>, first: bool) -> BufWriter<W> {
     // Exports diff to custom binary representation
 
     let mut skipped_districts: u8 = 0;
