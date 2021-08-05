@@ -1,6 +1,7 @@
 use std::io::prelude::*;
-use serde_json::json;
+use serde_json::{json, from_str};
 use structopt::StructOpt;
+use std::cmp;
 
 
 #[derive(Debug, StructOpt, Clone)]
@@ -102,59 +103,35 @@ fn encode() {
         if bytes == 0 { // EOF; reset
             break
         }
-        if line.contains("END") {
-            counter = 0;
-            district = 0;
-            let (diff, written) = compute_diff(&prev_mapping, &mapping, max_district);
-            if written {
-                let max_node = mapping.len();
-                // export_diff(diff, max_node, max_district, first);
-                export_diff(diff.clone(), max_node, max_district, first);
+        mapping = serde_json::from_str(&line).unwrap();
+        prev_mapping.resize(mapping.len()+1, 0);
+        let (diff, max_district, written) = compute_diff(&prev_mapping, max_district, &mapping);
+        if written {
+            let max_node = mapping.len();
+            // export_diff(diff, max_node, max_district, first);
 
-                prev_mapping = mapping.clone();
-                first = false;
-            }
-            continue // continue expecting more
+            export_diff(diff.clone(), max_node, max_district, first);
+
+            prev_mapping = mapping.clone();
+            first = false;
         }
-
-        let input: Vec<&str> = line.split_whitespace().collect();
-
-        if input.len() == 2 {
-            // precint district
-            node = usize::from_str_radix(input[0], 10).unwrap();
-            district = usize::from_str_radix(input[1], 10).unwrap();
-        } else if input.len() == 1 {
-            // district
-            node = counter.clone();
-            district = usize::from_str_radix(input[0], 10).unwrap();
-        } else {
-            panic!();
-        }
-
-        if node >= mapping.len() { // add zeros if out of bounds
-            mapping.resize(node+1, 0);
-            prev_mapping.resize(node+1, 0);
-        }
-        mapping[node] = district;
-
-        if district >= max_district {
-            max_district = district + 1; // assuming district is zero-indexed
-        }
-
-        counter += 1;
+        continue // continue expecting more
     }
 }
 
-fn compute_diff(prev_mapping: &Vec<usize>, new_mapping: &Vec<usize>, max_district: usize) -> (Vec<Vec<usize>>, bool) {
+fn compute_diff(prev_mapping: &Vec<usize>, mut max_district: usize, new_mapping: &Vec<usize>) -> (Vec<Vec<usize>>, usize, bool) {
     let mut written = false;
-    let mut assignment: Vec<Vec<usize>> = vec![vec![]; max_district];
+    let mut assignment: Vec<Vec<usize>> = vec![vec![]; 40];
     for (node, district) in new_mapping.iter().enumerate() {
         if prev_mapping[node] != *district { // update
             written = true;
+            max_district = cmp::max(max_district+1, *district+1);
+            assignment.resize(max_district+1, vec![]);
+
             assignment[*district].push(node);
         }
     }
-    (assignment, written)
+    (assignment, max_district, written)
 }
 
 fn export_diff(assignment: Vec<Vec<usize>>, max_node: usize, max_district: usize, first: bool) {
