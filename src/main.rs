@@ -32,8 +32,11 @@ fn decode(location: usize) {
     let mut district = 0;
     let mut prev_byte = 0;
     let mut mapping: Vec<usize> = Vec::new();
-    let mut skip = true;
 
+    let stdout = std::io::stdout();
+    let mut writer = std::io::BufWriter::with_capacity(usize::pow(2, 18), stdout.lock());
+
+    let mut skip = true;
     let mut new_district = false;
 
     for b in std::io::stdin().bytes() {
@@ -61,11 +64,11 @@ fn decode(location: usize) {
         } else if state == u16::MAX { // export and reset
             if location != 0 {
                 if counter == location && location != 0 {
-                    export_json(mapping.clone());
+                    writer = export_json(writer, mapping);
                     break
                 }
             } else {
-                export_json(mapping.clone());
+                writer = export_json(writer, mapping.clone());
             }
             counter += 1;
             district = 0;
@@ -81,11 +84,14 @@ fn decode(location: usize) {
         }
         mapping[node] = district as usize;
     };
+
+    writer.flush().unwrap();
 }
 
-fn export_json(mapping: Vec<usize>) {
-    println!("{:?}", mapping)
+fn export_json<W: std::io::Write>(mut writer: BufWriter<W>, mapping: Vec<usize>) -> BufWriter<W>{
     // println!("{}", json!(mapping));
+    writeln!(writer, "{:?}", mapping).unwrap();
+    writer
 }
 
 fn encode() {
@@ -118,6 +124,8 @@ fn encode() {
         }
         continue // continue expecting more
     }
+
+    writer.flush().unwrap();
 }
 
 fn compute_diff(prev_mapping: &Vec<usize>, mut max_district: usize, new_mapping: &Vec<usize>) -> (Vec<Vec<usize>>, usize, bool) {
@@ -147,20 +155,17 @@ fn export_diff<W: std::io::Write>(mut writer: BufWriter<W>, assignment: Vec<Vec<
                 }
                 writer.write_all(&(u16::MAX - 1).to_be_bytes()).unwrap(); // write district marker (16)
                 writer.write_all(&skipped_districts.to_be_bytes()).unwrap(); // write number of skipped district(s) (8)
-                writer.flush().unwrap();
                 skipped_districts = 0;
             }
 
             for node in nodes.clone() { // TODO: sort
                 writer.write_all(&(node as u16).to_be_bytes()).unwrap();
-                writer.flush().unwrap();
                 // write node (16)
             }
         }
         skipped_districts += 1;
     }
     writer.write_all(&u16::MAX.to_be_bytes()).unwrap(); // write district marker (16)
-    writer.flush().unwrap();
     // write end of assignment marker (16)
     writer
 }
