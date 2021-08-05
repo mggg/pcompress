@@ -1,5 +1,6 @@
 use std::io::prelude::*;
-use serde_json::{json, from_str};
+use std::io::BufWriter;
+// use serde_json::{json, from_str};
 use structopt::StructOpt;
 use std::cmp;
 
@@ -89,13 +90,13 @@ fn export_json(mapping: Vec<usize>) {
 
 fn encode() {
     let mut first = true; // only used for a plausibilty check; can be removed
-    let mut counter: usize = 0;
-    let mut node: usize = 0;
-    let mut district: usize = 0; // there cannot be more than 254 districts as 255 and 256 are reserved
-    let mut max_district: usize = 0; // district must be zero-indexed
+    let max_district: usize = 0; // district must be zero-indexed
     let mut prev_mapping: Vec<usize> = Vec::with_capacity(65536);
     // let mut prev_mapping: Vec<usize> = vec![0; 65536];
     let mut mapping = prev_mapping.clone();
+
+    let stdout = std::io::stdout();
+    let mut writer = std::io::BufWriter::with_capacity(usize::pow(2, 18), stdout.lock());
 
     loop {
         let mut line = String::new();
@@ -110,7 +111,7 @@ fn encode() {
             let max_node = mapping.len();
             // export_diff(diff, max_node, max_district, first);
 
-            export_diff(diff.clone(), max_node, max_district, first);
+            writer = export_diff(writer, diff.clone(), max_node, first);
 
             prev_mapping = mapping.clone();
             first = false;
@@ -134,32 +135,32 @@ fn compute_diff(prev_mapping: &Vec<usize>, mut max_district: usize, new_mapping:
     (assignment, max_district, written)
 }
 
-fn export_diff(assignment: Vec<Vec<usize>>, max_node: usize, max_district: usize, first: bool) {
+fn export_diff<W: std::io::Write>(mut writer: BufWriter<W>, assignment: Vec<Vec<usize>>, max_node: usize, first: bool) -> BufWriter<W> {
     // Exports diff to custom binary representation
 
-    let mut out = std::io::stdout();
     let mut skipped_districts: u8 = 0;
-    for i in 0..max_district {
-        if assignment[i].len() > 0 {
+    for (district, nodes) in assignment.iter().enumerate() {
+        if nodes.len() > 0 {
             if skipped_districts > 0 { // need to write skipped district marker
-                if (first && i == 0) { // first one should be zero
+                if (first && district == 0) { // first one should be zero
                     panic!();
                 }
-                out.write_all(&(u16::MAX - 1).to_be_bytes()).unwrap(); // write district marker (16)
-                out.write_all(&skipped_districts.to_be_bytes()).unwrap(); // write number of skipped district(s) (8)
-                out.flush().unwrap();
+                writer.write_all(&(u16::MAX - 1).to_be_bytes()).unwrap(); // write district marker (16)
+                writer.write_all(&skipped_districts.to_be_bytes()).unwrap(); // write number of skipped district(s) (8)
+                writer.flush().unwrap();
                 skipped_districts = 0;
             }
 
-            for node in assignment[i].clone() { // TODO: sort
-                out.write_all(&(node as u16).to_be_bytes()).unwrap();
-                out.flush().unwrap();
+            for node in nodes.clone() { // TODO: sort
+                writer.write_all(&(node as u16).to_be_bytes()).unwrap();
+                writer.flush().unwrap();
                 // write node (16)
             }
         }
         skipped_districts += 1;
     }
-    out.write_all(&u16::MAX.to_be_bytes()).unwrap(); // write district marker (16)
-    out.flush().unwrap();
+    writer.write_all(&u16::MAX.to_be_bytes()).unwrap(); // write district marker (16)
+    writer.flush().unwrap();
     // write end of assignment marker (16)
+    writer
 }
