@@ -136,7 +136,7 @@ fn encode() {
     writer.flush().unwrap();
 }
 
-fn compute_diff<'a>(prev_mapping: &[usize], new_mapping: &[usize], assignment: &'a mut Vec<Vec<usize>>) -> (&'a Vec<Vec<usize>>, bool) {
+pub fn compute_diff<'a>(prev_mapping: &[usize], new_mapping: &[usize], assignment: &'a mut Vec<Vec<usize>>) -> (&'a Vec<Vec<usize>>, bool) {
     assignment.clear();
 
     let mut written = false;
@@ -154,7 +154,7 @@ fn compute_diff<'a>(prev_mapping: &[usize], new_mapping: &[usize], assignment: &
     (assignment, written)
 }
 
-fn export_diff<W: std::io::Write>(mut writer: BufWriter<W>, assignment: &[Vec<usize>]) -> BufWriter<W> {
+pub fn export_diff<W: std::io::Write>(mut writer: BufWriter<W>, assignment: &[Vec<usize>]) -> BufWriter<W> {
     // Exports diff to custom binary representation
     let mut first = true;
 
