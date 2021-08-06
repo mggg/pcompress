@@ -1,6 +1,8 @@
 use std::io::prelude::*;
 use std::io::BufWriter;
 // use serde_json::{json, from_str};
+// use serde_json::{Serializer};
+// use serde::ser::Serialize;
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt, Clone)]
@@ -29,13 +31,14 @@ fn decode(location: usize) {
     let mut counter = 0;
     let mut district = 0;
     let mut prev_byte = 0;
-    let mut mapping: Vec<u8> = Vec::new();
+    let mut mapping: Vec<u8> = Vec::with_capacity(1000);
 
     let stdin = std::io::stdin();
     let reader = std::io::BufReader::with_capacity(usize::pow(2, 24), stdin.lock());
 
     let stdout = std::io::stdout();
     let mut writer = std::io::BufWriter::with_capacity(usize::pow(2, 24), stdout.lock());
+    // let mut ser = Serializer::new(writer);
 
     let mut skip = true;
     let mut new_district = false;
@@ -66,10 +69,12 @@ fn decode(location: usize) {
         } else if state == u16::MAX { // export and reset
             if location != 0 {
                 if counter == location && location != 0 {
+                    // mapping.serialize(&mut ser).unwrap();
                     writer = export_json(writer, &mapping);
                     break
                 }
             } else {
+                // mapping.serialize(&mut ser).unwrap();
                 writer = export_json(writer, &mapping);
             }
             counter += 1;
@@ -92,8 +97,9 @@ fn decode(location: usize) {
 
 fn export_json<W: std::io::Write>(mut writer: BufWriter<W>, mapping: &[u8]) -> BufWriter<W> {
     // writer.write_all(format!("{:?}", mapping).as_bytes()).unwrap();
-
-    writeln!(writer, "{:?}", mapping).unwrap();
+    // writer.write_all(&serde_json::to_string(mapping).unwrap().into_bytes()).unwrap();
+    writer.write_all(&serde_json::to_vec(mapping).unwrap()).unwrap();
+    writer.write_all("\n".as_bytes()).unwrap();
     writer
 }
 
