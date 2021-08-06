@@ -5,6 +5,9 @@ use std::io::BufWriter;
 // use serde::ser::Serialize;
 use structopt::StructOpt;
 
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 #[derive(Debug, StructOpt, Clone)]
 #[structopt(
     name = "PartitionCompress",
