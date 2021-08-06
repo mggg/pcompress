@@ -31,6 +31,4 @@ chain = MarkovChain(
 )
 
 for partition in tqdm.tqdm(chain):  # Valid output implementation
-    for node in partition.assignment.keys():
-        print(node, partition.assignment[node])
-    print("END")
+    print([x[1] for x in sorted(partition.assignment.to_dict().items(), key=lambda x: x[0])])
