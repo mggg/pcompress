@@ -31,6 +31,7 @@ fn decode(location: usize) {
     let mut counter = 0;
     let mut district = 0;
     let mut prev_byte = 0;
+    let mut node: usize = 0;
     let mut mapping: Vec<u8> = Vec::with_capacity(1000);
 
     let stdin = std::io::stdin();
@@ -53,7 +54,6 @@ fn decode(location: usize) {
         } else {
             skip = true;
         }
-        let state = u16::from_be_bytes([prev_byte, byte]);
 
         if new_district {
             // district += u8::from_be_bytes([byte]);
@@ -62,30 +62,32 @@ fn decode(location: usize) {
             continue
         }
 
+        let state = u16::from_be_bytes([prev_byte, byte]);
+
         // Detect special markers
         if state == u16::MAX-1 {
             new_district = true;
             skip = false; // the only time we only want single bytes
         } else if state == u16::MAX { // export and reset
-            if location != 0 {
-                if counter == location && location != 0 {
+            if location == 0 {
+                // mapping.serialize(&mut ser).unwrap();
+                writer = export_json(writer, &mapping);
+            } else {
+                if counter == location {
                     // mapping.serialize(&mut ser).unwrap();
                     writer = export_json(writer, &mapping);
                     break
                 }
-            } else {
-                // mapping.serialize(&mut ser).unwrap();
-                writer = export_json(writer, &mapping);
             }
             counter += 1;
             district = 0;
             prev_byte = 0;
         } else {
-            let node = state as usize;
+            node = state as usize;
 
-            // Write
-            if node >= mapping.len() { // add zeros if out of bounds
-                mapping.resize(node+1, 0);
+            // The first entry should be complete
+            if counter == 0 && node >= mapping.len() {
+                mapping.resize(node+1, 0); // add zeros if out of bounds
             }
 
             mapping[node] = district;
