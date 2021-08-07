@@ -71,9 +71,9 @@ class Record:
             else:
                 self.child.send(state[counter:])
             counter += limit
-        if counter == len(state):
-            self.child.send("\n".encode())
-            return True
+
+        self.child.send("\n".encode())
+        return True
 
 class Replay:
     def __init__(
