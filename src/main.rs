@@ -59,6 +59,7 @@ fn decode(location: usize) {
 
         if new_district {
             // district += u8::from_be_bytes([byte]);
+            // assert!(u8::from_be(byte) > 0);
             district += u8::from_be(byte);
             new_district = false;
             continue
@@ -136,7 +137,10 @@ fn encode() {
 }
 
 pub fn compute_diff<'a>(prev_mapping: &[usize], new_mapping: &[usize], assignment: &'a mut Vec<Vec<usize>>) -> (&'a Vec<Vec<usize>>, bool) {
-    assignment.clear();
+    for nodes in &mut *assignment {
+        nodes.clear();
+    }
+    // assignment.clear();
 
     let mut written = false;
     // let mut assignment: Vec<Vec<usize>> = vec![vec![]; max_district];
