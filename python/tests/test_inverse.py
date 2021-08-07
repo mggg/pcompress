@@ -64,6 +64,7 @@ def test_inverse(extreme, geographic):
 
     for partition in pcompress.Record(chain, "run.chain", extreme=extreme):
         partitions.append(partition.assignment.to_series())
+        assert len(partition.assignment.to_series())
         # assignment = [-1] * len(partition.assignment)  # a little expensive, but defensive TODO: refactor
         # for node, part in partition.assignment.items():
         #     assignment[node] = part - 1
@@ -81,6 +82,7 @@ def test_inverse(extreme, geographic):
 
     for c, partition in enumerate(pcompress.Replay(graph, "run.chain", geographic=geographic)):
         new_partitions.append(partition.assignment.to_series())
+        assert len(partition.assignment.to_series())
         # assignment = [-1] * len(partition.assignment)  # a little expensive, but defensive TODO: refactor
         # for node, part in partition.assignment.items():
         #     assignment[node] = part - 1
