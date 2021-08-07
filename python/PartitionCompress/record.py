@@ -3,14 +3,22 @@ from collections.abc import Iterable
 import pexpect
 import pexpect.popen_spawn
 import ast
+import multiprocessing
+
 
 class Record:
-    def __init__(self, chain: Iterable[Partition], filename, executable = "PartitionCompress"):
+    def __init__(self, chain: Iterable[Partition], filename, executable = "PartitionCompress", threads = None, extreme=False):
         self.chain = iter(chain)
         self.filename = filename
 
         self.path = pexpect.which("PartitionCompress")
-        self.child = pexpect.popen_spawn.PopenSpawn(f"/bin/bash -c '{self.path} | xz > {self.filename}'")
+        self.child = pexpect.popen_spawn.PopenSpawn(f"/bin/bash -c '{self.path} > {self.filename}.tmp'")
+        # TODO: add overwrite warnings/protection
+
+        if not threads:
+            self.threads = multiprocessing.cpu_count()
+        else:
+            self.threads = threads
 
     def __iter__(self):
         return self
@@ -21,16 +29,19 @@ class Record:
     def __next__(self):
         try:
             step = next(self.chain)
-            state = str([x[1] for x in sorted(step.assignment.to_dict().items(), key=lambda x: x[0])])
+            state = str(list(step.assignment.to_series()))
             self.child.sendline(state.encode())
             return step
 
         except StopIteration:
             self.child.sendeof()
+            self.child.wait()
+            pexpect.popen_spawn.PopenSpawn(f"xz -T {self.threads} {self.filename}.tmp").wait()
+            pexpect.popen_spawn.PopenSpawn(f"mv {self.filename}.tmp.xz {self.filename}").wait()
             raise
 
 class Replay:
-    def __init__(self, graph, filename, updaters = None, executable = "PartitionCompress", *args, **kwargs):
+    def __init__(self, graph, filename, updaters = None, executable = "PartitionCompress", threads = None, *args, **kwargs):
         self.graph = graph
         self.filename = filename
         self.updaters = updaters
@@ -38,8 +49,14 @@ class Replay:
         self.args = args
         self.kwargs = kwargs
 
+        if not threads:
+            self.threads = multiprocessing.cpu_count()
+        else:
+            self.threads = threads
+
         self.path = pexpect.which(executable)
-        self.child = pexpect.popen_spawn.PopenSpawn(f"/bin/bash -c 'cat {self.filename} | unxz | {self.path} -d'")
+        self.child = pexpect.popen_spawn.PopenSpawn(f"/bin/bash -c 'cat {self.filename} | unxz -T {self.threads} | {self.path} -d'")
+
 
     def __iter__(self):
         return self
