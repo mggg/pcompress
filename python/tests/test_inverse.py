@@ -15,7 +15,6 @@ from gerrychain import (
 )
 from gerrychain.proposals import recom
 from functools import partial
-import tqdm
 
 graph = Graph.from_json("../examples/PA_VTDs.json")
 initial_partition = Partition(
@@ -63,7 +62,7 @@ def test_inverse(geographic):
     counter = 0
     partitions = []
     old_partition = pd.Series()
-    # for partition in tqdm.tqdm(pcompress.Record(chain, "run.chain")):
+
     for partition in pcompress.Record(chain, "run.chain"):
         partition_series = partition.assignment.to_series()
         if len(old_partition):
@@ -78,7 +77,7 @@ def test_inverse(geographic):
     for c, partition in enumerate(pcompress.Replay(graph, "run.chain", geographic=geographic)):
         partition_series = partition.assignment.to_series()
         partition_orig = partitions.pop(0)
-        for item in tqdm.tqdm(partition_series.keys()):
+        for item in partition_series.keys():
 
             value_orig = partition_orig[item]
             value_new = partition_series[item]
