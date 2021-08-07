@@ -1,7 +1,15 @@
 [package]
 name = "pcompress"
 version = "0.1.0"
+authors = ["Max Fan <root@max.fan>"]
+description = "Experimental, efficient, and performant binary representation of districting plans"
+readme = "README.md"
 edition = "2018"
+repository = "https://github.com/InnovativeInventor/pcompress"
+license = "MIT"
+keywords = ["redistricting", "compression", "parser"]
+categories = ["command-line-utilities", "compression", "encoding", "parsing", "science"]
+exclude = ["julia/", "python/", "zstd/", "examples/", ".*", "pgo.sh"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
