@@ -34,7 +34,6 @@ fn decode(location: usize) {
     let mut counter = 0;
     let mut district = 0;
     let mut prev_byte = 0;
-    let mut node: usize = 0;
     let mut mapping: Vec<u8> = Vec::with_capacity(1000);
 
     let stdin = std::io::stdin();
@@ -86,7 +85,7 @@ fn decode(location: usize) {
             district = 0;
             prev_byte = 0;
         } else {
-            node = state as usize;
+            let node = state as usize;
 
             // The first entry should be complete
             if counter == 0 && node >= mapping.len() {
