@@ -48,8 +48,8 @@ chain = MarkovChain(
 )
 
 for partition in pcompress.Record(chain, "run.chain"):
-    print(partition)
+    print(partition.population)
 
 ## Or, if you want a progress bar
 # for partition in pcompress.Record(tqdm.tqdm(chain), "run.chain"):
-#     print(partition)
+#     print(partition.population)
