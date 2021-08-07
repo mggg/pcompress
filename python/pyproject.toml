@@ -3,7 +3,7 @@ name = "pcompress"
 version = "0.1.0"
 authors = ["Max Fan <root@max.fan>"]
 description = "Experimental, efficient, and performant binary representation of districting plans"
-readme = "README.md"
+# readme = "README.md"
 repository = "https://github.com/InnovativeInventor/pcompress"
 license = "MIT"
 
