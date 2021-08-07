@@ -3,16 +3,6 @@
 version = 3
 
 [[package]]
-name = "PartitionCompress"
-version = "0.1.0"
-dependencies = [
- "mimalloc",
- "serde",
- "serde_json",
- "structopt",
-]
-
-[[package]]
 name = "ansi_term"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -111,6 +101,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fb74897ce508e6c49156fd1476fc5922cbc6e75183c65e399c765a09122e5130"
 dependencies = [
  "libmimalloc-sys",
+]
+
+[[package]]
+name = "pcompress"
+version = "0.1.0"
+dependencies = [
+ "mimalloc",
+ "serde",
+ "serde_json",
+ "structopt",
 ]
 
 [[package]]

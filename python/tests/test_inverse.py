@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import pandas as pd
-import PartitionCompress
+import pcompress
 from gerrychain import (GeographicPartition, Partition, Graph, MarkovChain,
                         proposals, updaters, constraints, accept, Election)
 from gerrychain.proposals import recom
@@ -43,15 +43,15 @@ chain = MarkovChain(
 )
 
 def test_setup():
-    for partition in PartitionCompress.Record(chain, "run.chain"):
+    for partition in pcompress.Record(chain, "run.chain"):
         pass
 
 def test_inverse():
     counter = 0
     partitions = []
     old_partition = pd.Series()
-    # for partition in tqdm.tqdm(PartitionCompress.Record(chain, "run.chain")):
-    for partition in PartitionCompress.Record(chain, "run.chain"):
+    # for partition in tqdm.tqdm(pcompress.Record(chain, "run.chain")):
+    for partition in pcompress.Record(chain, "run.chain"):
         partition_series = partition.assignment.to_series()
         if len(old_partition):
             if (partition_series.values != old_partition.values).any():
@@ -62,7 +62,7 @@ def test_inverse():
             partitions.append(partition_series)
             old_partition = partition_series
 
-    for c, partition in enumerate(PartitionCompress.Replay(graph, "run.chain")):
+    for c, partition in enumerate(pcompress.Replay(graph, "run.chain")):
         partition_series = partition.assignment.to_series()
         partition_orig = partitions.pop(0)
         for item in tqdm.tqdm(partition_series.keys()):

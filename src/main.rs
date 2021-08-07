@@ -10,7 +10,7 @@ static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 #[derive(Debug, StructOpt, Clone)]
 #[structopt(
-    name = "PartitionCompress",
+    name = "pcompress",
     about = "Efficient district/parition compression format"
 )]
 struct Opt {

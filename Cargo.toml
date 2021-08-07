@@ -1,5 +1,5 @@
 [package]
-name = "PartitionCompress"
+name = "pcompress"
 version = "0.1.0"
 edition = "2018"
 
