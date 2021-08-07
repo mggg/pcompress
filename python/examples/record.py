@@ -17,10 +17,6 @@ from functools import partial
 import tqdm
 
 graph = Graph.from_json("../examples/PA_VTDs.json")
-initial_partition = Partition(
-    graph,
-    assignment="CD_2011",
-)
 
 my_updaters = {"population": updaters.Tally("TOTPOP", alias="population")}
 initial_partition = GeographicPartition(
