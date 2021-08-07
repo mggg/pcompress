@@ -115,7 +115,7 @@ class Replay:
 
         assignment = ast.literal_eval(assignment_line.decode().rstrip())
 
-        if not isinstance(assignment, list):
+        if not isinstance(assignment, list) or not assignment:
             raise TypeError("Invalid chain!")
 
         # print(assignment)
