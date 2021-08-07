@@ -51,37 +51,9 @@ chain = MarkovChain(
     total_steps=10,
 )
 
+for partition in pcompress.Record(chain, "run.chain"):
+    print(partition)
 
-def test_setup():
-    for partition in pcompress.Record(chain, "run.chain"):
-        pass
-
-
-def test_inverse():
-    counter = 0
-    partitions = []
-    old_partition = pd.Series()
-    # for partition in tqdm.tqdm(pcompress.Record(chain, "run.chain")):
-    for partition in pcompress.Record(chain, "run.chain"):
-        partition_series = partition.assignment.to_series()
-        if len(old_partition):
-            if (partition_series.values != old_partition.values).any():
-                partitions.append(partition_series)
-                counter += 1
-                old_partition = partition_series
-        else:
-            partitions.append(partition_series)
-            old_partition = partition_series
-
-    for c, partition in enumerate(pcompress.Replay(graph, "run.chain")):
-        partition_series = partition.assignment.to_series()
-        partition_orig = partitions.pop(0)
-        for item in tqdm.tqdm(partition_series.keys()):
-
-            value_orig = partition_orig[item]
-            value_new = partition_series[item]
-
-            ((partition_series == value_new) == (partition_series == value_orig)).all()
-        print(c)
-
-    assert c == counter
+## Or, if you want a progress bar
+# for partition in pcompress.Record(tqdm.tqdm(chain), "run.chain"):
+#     print(partition)

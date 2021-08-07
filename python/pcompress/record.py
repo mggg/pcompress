@@ -1,4 +1,4 @@
-from gerrychain import Partition
+from gerrychain import Partition, GeographicPartition
 from collections.abc import Iterable
 import pexpect
 import pexpect.popen_spawn
@@ -7,12 +7,21 @@ import multiprocessing
 
 
 class Record:
-    def __init__(self, chain: Iterable[Partition], filename, executable = "PartitionCompress", threads = None, extreme=False):
+    def __init__(
+        self,
+        chain: Iterable[Partition],
+        filename,
+        executable="PartitionCompress",
+        threads=None,
+        extreme=False,
+    ):
         self.chain = iter(chain)
         self.filename = filename
 
         self.path = pexpect.which("PartitionCompress")
-        self.child = pexpect.popen_spawn.PopenSpawn(f"/bin/bash -c '{self.path} > {self.filename}.tmp'")
+        self.child = pexpect.popen_spawn.PopenSpawn(
+            f"/bin/bash -c '{self.path} > {self.filename}.tmp'"
+        )
         # TODO: add overwrite warnings/protection
 
         if not threads:
@@ -36,15 +45,31 @@ class Record:
         except StopIteration:
             self.child.sendeof()
             self.child.wait()
-            pexpect.popen_spawn.PopenSpawn(f"xz -T {self.threads} {self.filename}.tmp").wait()
-            pexpect.popen_spawn.PopenSpawn(f"mv {self.filename}.tmp.xz {self.filename}").wait()
+            pexpect.popen_spawn.PopenSpawn(
+                f"xz -T {self.threads} {self.filename}.tmp"
+            ).wait()
+            pexpect.popen_spawn.PopenSpawn(
+                f"mv {self.filename}.tmp.xz {self.filename}"
+            ).wait()
             raise
 
+
 class Replay:
-    def __init__(self, graph, filename, updaters = None, executable = "PartitionCompress", threads = None, *args, **kwargs):
+    def __init__(
+        self,
+        graph,
+        filename,
+        updaters=None,
+        executable="PartitionCompress",
+        threads=None,
+        geographic=False,
+        *args,
+        **kwargs,
+    ):
         self.graph = graph
         self.filename = filename
         self.updaters = updaters
+        self.geographic = geographic
 
         self.args = args
         self.kwargs = kwargs
@@ -55,8 +80,9 @@ class Replay:
             self.threads = threads
 
         self.path = pexpect.which(executable)
-        self.child = pexpect.popen_spawn.PopenSpawn(f"/bin/bash -c 'cat {self.filename} | unxz -T {self.threads} | {self.path} -d'")
-
+        self.child = pexpect.popen_spawn.PopenSpawn(
+            f"/bin/bash -c 'cat {self.filename} | unxz -T {self.threads} | {self.path} -d'"
+        )
 
     def __iter__(self):
         return self
@@ -71,4 +97,19 @@ class Replay:
         if not isinstance(assignment, list):
             raise TypeError("Invalid chain!")
 
-        return Partition(self.graph, dict(enumerate(assignment)), self.updaters, *self.args, **self.kwargs)
+        if self.geographic:
+            return GeographicPartition(
+                self.graph,
+                dict(enumerate(assignment)),
+                self.updaters,
+                *self.args,
+                **self.kwargs,
+            )
+        else:
+            return Partition(
+                self.graph,
+                dict(enumerate(assignment)),
+                self.updaters,
+                *self.args,
+                **self.kwargs,
+            )
