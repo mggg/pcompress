@@ -1,4 +1,5 @@
 from gerrychain import Partition, GeographicPartition
+from gerrychain.partition.assignment import Assignment
 from collections.abc import Iterable
 import pexpect
 import pexpect.popen_spawn
@@ -17,6 +18,7 @@ class Record:
     ):
         self.chain = iter(chain)
         self.filename = filename
+        self.extreme = extreme
 
         self.path = pexpect.which("PartitionCompress")
         self.child = pexpect.popen_spawn.PopenSpawn(
@@ -38,21 +40,40 @@ class Record:
     def __next__(self):
         try:
             step = next(self.chain)
-            state = str(list(step.assignment.to_series()))
-            self.child.sendline(state.encode())
+            assignment = list(step.assignment.to_series())
+
+            state = str(assignment)
+            self.sendline(state.encode())
             return step
 
         except StopIteration:
             self.child.sendeof()
             self.child.wait()
-            pexpect.popen_spawn.PopenSpawn(
-                f"xz -T {self.threads} {self.filename}.tmp"
-            ).wait()
+            if self.extreme:
+                pexpect.popen_spawn.PopenSpawn(
+                    f"xz -e -T {self.threads} {self.filename}.tmp"
+                ).wait()
+            else:
+                pexpect.popen_spawn.PopenSpawn(
+                    f"xz -T {self.threads} {self.filename}.tmp"
+                ).wait()
             pexpect.popen_spawn.PopenSpawn(
                 f"mv {self.filename}.tmp.xz {self.filename}"
             ).wait()
             raise
 
+    def sendline(self, state):
+        counter = 0
+        limit = 1024
+        while counter < len(state):
+            if counter+limit < len(state):
+                self.child.send(state[counter:counter+limit])
+            else:
+                self.child.send(state[counter:])
+            counter += limit
+        if counter == len(state):
+            self.child.send("\n".encode())
+            return True
 
 class Replay:
     def __init__(
@@ -81,7 +102,7 @@ class Replay:
 
         self.path = pexpect.which(executable)
         self.child = pexpect.popen_spawn.PopenSpawn(
-            f"/bin/bash -c 'cat {self.filename} | unxz -T {self.threads} | {self.path} -d'"
+            f"/bin/bash -c 'cat {self.filename} | unxz -T {self.threads} | {self.path} -d'",
         )
 
     def __iter__(self):
@@ -92,10 +113,13 @@ class Replay:
         if not assignment_line:
             raise StopIteration
 
-        assignment = ast.literal_eval(assignment_line.decode())
+        assignment = ast.literal_eval(assignment_line.decode().rstrip())
 
         if not isinstance(assignment, list):
             raise TypeError("Invalid chain!")
+
+        # print(assignment)
+        assignment = [x+1 for x in assignment]  # GerryChain is 1-indexed
 
         if self.geographic:
             return GeographicPartition(

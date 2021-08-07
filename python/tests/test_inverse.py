@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 import pcompress
+import itertools
 import pytest
 from gerrychain import (
     GeographicPartition,
@@ -53,32 +54,42 @@ def test_setup():
         pass
 
 
-@pytest.mark.parametrize("geographic", [True, False])
-def test_inverse(geographic):
+@pytest.mark.parametrize("extreme, geographic", itertools.product([True, False], repeat=2))
+def test_inverse(extreme, geographic):
     counter = 0
+    c = 0
+    # old_partition = []
     partitions = []
-    old_partition = pd.Series()
+    new_partitions = []
 
-    for partition in pcompress.Record(chain, "run.chain"):
-        partition_series = partition.assignment.to_series()
-        if len(old_partition):
-            if (partition_series.values != old_partition.values).any():
-                partitions.append(partition_series)
-                counter += 1
-                old_partition = partition_series
-        else:
-            partitions.append(partition_series)
-            old_partition = partition_series
+    for partition in pcompress.Record(chain, "run.chain", extreme=extreme):
+        partitions.append(partition.assignment.to_series())
+        # assignment = [-1] * len(partition.assignment)  # a little expensive, but defensive TODO: refactor
+        # for node, part in partition.assignment.items():
+        #     assignment[node] = part - 1
+
+        # assert -1 not in assignment
+
+        # if len(old_partition):
+        #     if assignment != old_partition:
+        #         partitions.append(assignment)
+        #         counter += 1
+        # else:
+        #     partitions.append(assignment)
+
+        # old_partition = assignment
 
     for c, partition in enumerate(pcompress.Replay(graph, "run.chain", geographic=geographic)):
-        partition_series = partition.assignment.to_series()
-        partition_orig = partitions.pop(0)
-        for item in partition_series.keys():
+        new_partitions.append(partition.assignment.to_series())
+        # assignment = [-1] * len(partition.assignment)  # a little expensive, but defensive TODO: refactor
+        # for node, part in partition.assignment.items():
+        #     assignment[node] = part - 1
 
-            value_orig = partition_orig[item]
-            value_new = partition_series[item]
+        # assert -1 not in assignment
 
-            ((partition_series == value_new) == (partition_series == value_orig)).all()
-        print(c)
-
+        # assignment_orig = partitions.pop(0)
+        # assert assignment_orig == assignment, len(assignment_orig)
     assert c == counter
+
+    for partition, new_partition in zip(partitions, new_partitions):
+        assert (partition.values == new_partition.values).all()
