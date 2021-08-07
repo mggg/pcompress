@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 import pcompress
+import pytest
 from gerrychain import (
     GeographicPartition,
     Partition,
@@ -57,7 +58,8 @@ def test_setup():
         pass
 
 
-def test_inverse():
+@pytest.mark.parametrize("geographic", [True, False])
+def test_inverse(geographic):
     counter = 0
     partitions = []
     old_partition = pd.Series()
@@ -73,7 +75,7 @@ def test_inverse():
             partitions.append(partition_series)
             old_partition = partition_series
 
-    for c, partition in enumerate(pcompress.Replay(graph, "run.chain")):
+    for c, partition in enumerate(pcompress.Replay(graph, "run.chain", geographic=geographic)):
         partition_series = partition.assignment.to_series()
         partition_orig = partitions.pop(0)
         for item in tqdm.tqdm(partition_series.keys()):
