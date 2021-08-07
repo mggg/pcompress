@@ -12,7 +12,7 @@ class Record:
         self,
         chain: Iterable[Partition],
         filename,
-        executable="PartitionCompress",
+        executable="pcompress",
         threads=None,
         extreme=False,
     ):
@@ -20,7 +20,7 @@ class Record:
         self.filename = filename
         self.extreme = extreme
 
-        self.path = pexpect.which("PartitionCompress")
+        self.path = pexpect.which("pcompress")
         self.child = pexpect.popen_spawn.PopenSpawn(
             f"/bin/bash -c '{self.path} > {self.filename}.tmp'"
         )
@@ -81,7 +81,7 @@ class Replay:
         graph,
         filename,
         updaters=None,
-        executable="PartitionCompress",
+        executable="pcompress",
         threads=None,
         geographic=False,
         *args,
@@ -124,7 +124,8 @@ class Replay:
         if self.geographic:
             return GeographicPartition(
                 self.graph,
-                dict(enumerate(assignment)),
+                # dict(enumerate(assignment)),
+                Assignment.from_dict(dict(enumerate(assignment))),
                 self.updaters,
                 *self.args,
                 **self.kwargs,
@@ -132,7 +133,8 @@ class Replay:
         else:
             return Partition(
                 self.graph,
-                dict(enumerate(assignment)),
+                # dict(enumerate(assignment)),
+                Assignment.from_dict(dict(enumerate(assignment))),
                 self.updaters,
                 *self.args,
                 **self.kwargs,
