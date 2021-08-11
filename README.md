@@ -1,6 +1,6 @@
 ## pcompress
 Currently it is hard to store the state of every single step of a normal Markov Chain Monte Carlo from GerryChain Python or GerryChain Julia.
-This repo aims to produce an efficient binary representation of partitions/districting assignments that will enable for generated plans to be saved on-the-fly.
+This repo aims to produce an efficient intermediate binary representation of partitions/districting assignments that will enable for generated plans to be saved on-the-fly.
 Each step is represented as the diff from the previous step, enabling a significant reduction in disk usage per step.
 
 Note that if a step repeats, it will be omitted.
@@ -11,15 +11,22 @@ See [`chain_flip`](https://github.com/InnovativeInventor/pcompress/blob/main/exa
 To decode, simply pipe the compressed output into `pcompress --decode`.
 
 ## Binary Representation
+### Intermediate Representation
 TODO: document this.
 
-## Further compression
-If you want to compress the output file further, `xz` is recommended.
+### Target Representation
+The target representation can be any lossless compression representation. 
+`xz` (an implementation of LZMA2) is preferred, but `zip` and other formats will work.
 With `xz` and pcompress, quite a few orders of magnitude of compression can be achieved.
 
 E.g.:
 ```
 xz -9 -k chain.output
+```
+
+Example usage with pipes:
+```
+python chain_run.py | pcompress | xz -e > run.chain
 ```
 
 ## TODOs
