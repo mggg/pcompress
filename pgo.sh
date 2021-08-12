@@ -1,4 +1,4 @@
-## Test code for profile-guided optimization (note this actually slows down the program)
+## Test code for profile-guided optimization
 
 target="x86_64-apple-darwin"
 target="x86_64-unknown-linux-gnu"
