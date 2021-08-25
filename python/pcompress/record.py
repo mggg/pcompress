@@ -1,9 +1,8 @@
 from gerrychain import Partition, GeographicPartition
 from gerrychain.partition.assignment import Assignment
 from collections.abc import Iterable
-import pexpect
-import pexpect.popen_spawn
-import ast
+# import ast
+import json
 import multiprocessing
 
 import subprocess
@@ -125,7 +124,8 @@ class Replay:
             self.child.wait()
             raise StopIteration
 
-        assignment = ast.literal_eval(assignment_line.decode().rstrip())
+        # assignment = ast.literal_eval(assignment_line.decode().rstrip())
+        assignment = json.loads(assignment_line)
 
         if not isinstance(assignment, list) or not assignment:
             self.child.terminate()
