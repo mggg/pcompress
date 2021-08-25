@@ -20,7 +20,7 @@ class Record:
         executable="pcompress",
         # executable="pv",
         threads=None,
-        extreme=False,
+        extreme=True,
     ):
         self.chain = iter(chain)
         self.filename = filename
