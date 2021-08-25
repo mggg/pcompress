@@ -56,42 +56,25 @@ def test_setup():
 
 @pytest.mark.parametrize("extreme, geographic", itertools.product([True, False], repeat=2))
 def test_inverse(extreme, geographic):
-    counter = 0
+    # counter = 0
     c = 0
-    # old_partition = []
+    old_partition = pd.Series()
     partitions = []
     new_partitions = []
 
     for partition in pcompress.Record(chain, "run.chain", extreme=extreme):
-        partitions.append(partition.assignment.to_series())
+        assignment = partition.assignment.to_series().sort_index()
         assert len(partition.assignment.to_series())
-        # assignment = [-1] * len(partition.assignment)  # a little expensive, but defensive TODO: refactor
-        # for node, part in partition.assignment.items():
-        #     assignment[node] = part - 1
-
-        # assert -1 not in assignment
-
-        # if len(old_partition):
-        #     if assignment != old_partition:
-        #         partitions.append(assignment)
-        #         counter += 1
-        # else:
-        #     partitions.append(assignment)
-
-        # old_partition = assignment
+        partitions.append(assignment)
 
     for c, partition in enumerate(pcompress.Replay(graph, "run.chain", geographic=geographic)):
-        new_partitions.append(partition.assignment.to_series())
+        new_partitions.append(partition.assignment.to_series().sort_index())
         assert len(partition.assignment.to_series())
-        # assignment = [-1] * len(partition.assignment)  # a little expensive, but defensive TODO: refactor
-        # for node, part in partition.assignment.items():
-        #     assignment[node] = part - 1
 
-        # assert -1 not in assignment
-
-        # assignment_orig = partitions.pop(0)
-        # assert assignment_orig == assignment, len(assignment_orig)
-    assert c == counter
+    assert len(partitions) == len(new_partitions)
 
     for partition, new_partition in zip(partitions, new_partitions):
-        assert (partition.values == new_partition.values).all()
+        partition_assignment = list(partition.sort_index())
+        new_partition_assignment = list(new_partition.sort_index())
+        for i, each_value in enumerate(partition_assignment):
+            assert each_value == new_partition_assignment[i], i

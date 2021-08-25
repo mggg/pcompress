@@ -6,6 +6,11 @@ import pexpect.popen_spawn
 import ast
 import multiprocessing
 
+import subprocess
+
+import functools
+import sys
+
 
 class Record:
     def __init__(
@@ -13,6 +18,7 @@ class Record:
         chain: Iterable[Partition],
         filename,
         executable="pcompress",
+        # executable="pv",
         threads=None,
         extreme=False,
     ):
@@ -20,11 +26,11 @@ class Record:
         self.filename = filename
         self.extreme = extreme
 
-        self.path = pexpect.which("pcompress")
-        self.child = pexpect.popen_spawn.PopenSpawn(
-            f"/bin/bash -c '{self.path} > {self.filename}.tmp'"
+        self.child = subprocess.Popen(
+            f"{executable} > {self.filename}.tmp",
+            shell=True,
+            stdin=subprocess.PIPE,
         )
-        # TODO: add overwrite warnings/protection
 
         if not threads:
             self.threads = multiprocessing.cpu_count()
@@ -40,14 +46,16 @@ class Record:
     def __next__(self):
         try:
             step = next(self.chain)
-            assignment = list(step.assignment.to_series())
+            assignment = list(step.assignment.to_series().sort_index())
+            assignment = [x-1 for x in assignment]  # GerryChain is 1-indexed
 
-            state = str(assignment)
-            self.sendline(state.encode())
+            state = str(assignment).rstrip() + "\n"
+            # self.child.sendline(state.encode())
+            self.child.stdin.write(state.encode())
             return step
 
         except StopIteration:
-            self.child.sendeof()
+            self.child.stdin.close()
             self.child.wait()
             if self.extreme:
                 pexpect.popen_spawn.PopenSpawn(
@@ -63,15 +71,19 @@ class Record:
             raise
 
     def sendline(self, state):
+        # bytestring = b""
         counter = 0
         limit = 1024
         while counter < len(state):
             if counter+limit < len(state):
+                # bytestring += state[counter:counter+limit]
                 self.child.send(state[counter:counter+limit])
             else:
+                # bytestring += state[counter:]
                 self.child.send(state[counter:])
             counter += limit
 
+        # assert len(bytestring) == len(state)
         self.child.send("\n".encode())
         return True
 
@@ -81,7 +93,8 @@ class Replay:
         graph,
         filename,
         updaters=None,
-        executable="pcompress",
+        executable="pcompress -d",
+        # executable="pv",
         threads=None,
         geographic=False,
         *args,
@@ -100,32 +113,36 @@ class Replay:
         else:
             self.threads = threads
 
-        self.path = pexpect.which(executable)
-        self.child = pexpect.popen_spawn.PopenSpawn(
-            f"/bin/bash -c 'cat {self.filename} | unxz -T {self.threads} | {self.path} -d'",
+        self.child = subprocess.Popen(
+            f"/bin/bash -c 'cat {self.filename} | unxz -T {self.threads} | {executable}'",
+            shell=True,
+            stdout=subprocess.PIPE,
         )
 
     def __iter__(self):
         return self
 
     def __next__(self):
-        assignment_line = self.child.readline()
+        assignment_line = self.child.stdout.readline()
         if not assignment_line:
+            self.child.terminate()
+            self.child.wait()
             raise StopIteration
 
         assignment = ast.literal_eval(assignment_line.decode().rstrip())
 
         if not isinstance(assignment, list) or not assignment:
+            self.child.terminate()
+            self.child.wait()
             raise TypeError("Invalid chain!")
 
-        # print(assignment)
         assignment = [x+1 for x in assignment]  # GerryChain is 1-indexed
 
         if self.geographic:
             return GeographicPartition(
                 self.graph,
-                # dict(enumerate(assignment)),
-                Assignment.from_dict(dict(enumerate(assignment))),
+                dict(enumerate(assignment)),
+                # Assignment.from_dict(dict(enumerate(assignment))),
                 self.updaters,
                 *self.args,
                 **self.kwargs,
@@ -133,8 +150,8 @@ class Replay:
         else:
             return Partition(
                 self.graph,
-                # dict(enumerate(assignment)),
-                Assignment.from_dict(dict(enumerate(assignment))),
+                dict(enumerate(assignment)),
+                # Assignment.from_dict(dict(enumerate(assignment))),
                 self.updaters,
                 *self.args,
                 **self.kwargs,
