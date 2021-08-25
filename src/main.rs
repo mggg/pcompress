@@ -168,9 +168,7 @@ pub fn export_diff<W: std::io::Write>(mut writer: BufWriter<W>, assignment: &[Ve
         } else {
             // if skipped_districts > 0 { // need to write skipped district marker
             // }
-            if first {
-                first = false
-            } else {
+            if ! first {
                 writer.write_all(&(u16::MAX - 1).to_be_bytes()).unwrap(); // write district marker (16)
                 writer.write_all(&skipped_districts.to_be_bytes()).unwrap(); // write number of skipped district(s) (8)
             }
@@ -181,6 +179,7 @@ pub fn export_diff<W: std::io::Write>(mut writer: BufWriter<W>, assignment: &[Ve
             }
             skipped_districts = 1;
         }
+        first = false;
     }
     writer.write_all(&u16::MAX.to_be_bytes()).unwrap(); // write district marker (16)
     // write end of assignment marker (16)
