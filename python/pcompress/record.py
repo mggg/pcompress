@@ -26,16 +26,23 @@ class Record:
         self.filename = filename
         self.extreme = extreme
 
-        self.child = subprocess.Popen(
-            f"{executable} > {self.filename}.tmp",
-            shell=True,
-            stdin=subprocess.PIPE,
-        )
-
         if not threads:
             self.threads = multiprocessing.cpu_count()
         else:
             self.threads = threads
+
+        if self.extreme:
+            self.child = subprocess.Popen(
+                f"{executable} | xz -e -T {self.threads} > {self.filename}",
+                shell=True,
+                stdin=subprocess.PIPE,
+            )
+        else:
+            self.child = subprocess.Popen(
+                f"{executable} | xz -T {self.threads} > {self.filename}",
+                shell=True,
+                stdin=subprocess.PIPE,
+            )
 
     def __iter__(self):
         return self
@@ -54,20 +61,9 @@ class Record:
             self.child.stdin.write(state.encode())
             return step
 
-        except StopIteration:
+        except StopIteration:  # kill child process
             self.child.stdin.close()
             self.child.wait()
-            if self.extreme:
-                pexpect.popen_spawn.PopenSpawn(
-                    f"xz -e -T {self.threads} {self.filename}.tmp"
-                ).wait()
-            else:
-                pexpect.popen_spawn.PopenSpawn(
-                    f"xz -T {self.threads} {self.filename}.tmp"
-                ).wait()
-            pexpect.popen_spawn.PopenSpawn(
-                f"mv {self.filename}.tmp.xz {self.filename}"
-            ).wait()
             raise
 
     def sendline(self, state):
