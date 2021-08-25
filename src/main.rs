@@ -124,7 +124,7 @@ fn encode() {
         if bytes == 0 { // EOF; reset
             break
         }
-        let mapping: Vec<usize> = serde_json::from_str(&line).unwrap();
+        let mapping: Vec<usize> = serde_json::from_str(line.trim()).expect("Could not read input.");
         let (diff, written) = compute_diff(&prev_mapping, &mapping, diff);
         if written {
             writer = export_diff(writer, diff);
