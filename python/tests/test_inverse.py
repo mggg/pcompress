@@ -55,14 +55,30 @@ def test_setup():
 
 
 @pytest.mark.parametrize("extreme, geographic", itertools.product([True, False], repeat=2))
-def test_inverse(extreme, geographic):
-    # counter = 0
-    c = 0
-    old_partition = pd.Series()
+def test_population(extreme, geographic):
+    """
+    Test that population counts remain the same
+    """
+    populations = []
+    new_populations = []
+
+    for partition in pcompress.Record(chain, "run.chain", extreme=extreme):
+        populations.append(partition.population.values())
+
+    for c, partition in enumerate(pcompress.Replay(graph, "run.chain", geographic=geographic, updaters=my_updaters)):
+        new_populations.append(partition.population.values())
+
+    assert len(populations) == len(new_populations)
+
+    for population, new_population in zip(populations, new_populations):
+        assert sorted(population) == sorted(new_population)
+
+@pytest.mark.parametrize("geographic", [True, False])
+def test_inverse(geographic):
     partitions = []
     new_partitions = []
 
-    for partition in pcompress.Record(chain, "run.chain", extreme=extreme):
+    for partition in pcompress.Record(chain, "run.chain", extreme=False):
         assignment = partition.assignment.to_series().sort_index()
         assert len(partition.assignment.to_series())
         partitions.append(assignment)

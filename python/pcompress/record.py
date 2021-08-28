@@ -31,6 +31,9 @@ class Record:
             self.threads = threads
 
         if self.extreme:
+            if executable == "pcompress":
+                executable = "pcompress -e"
+
             self.child = subprocess.Popen(
                 f"{executable} | xz -e -T {self.threads} > {self.filename}",
                 shell=True,
