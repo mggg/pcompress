@@ -181,10 +181,8 @@ pub fn compute_diff<'a>(prev_mapping: &[usize], new_mapping: &[usize], diff: &'a
     for nodes in &mut *diff {
         nodes.clear();
     }
-    // diff.clear();
 
     let mut written = false;
-    // let mut diff: Vec<Vec<usize>> = vec![vec![]; max_district];
     for (node, district) in new_mapping.iter().enumerate() {
         if node >= prev_mapping.len() || prev_mapping[node] != *district { // difference detected
             written = true;
