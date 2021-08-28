@@ -27,8 +27,8 @@ struct Opt {
     extreme: bool,
 }
 
-struct Diff {
-    diff: Vec<Vec<usize>>
+pub struct Diff {
+    diff: Vec<Vec<usize>>,
 }
 
 impl Diff {
@@ -42,8 +42,11 @@ impl Diff {
             diff: vec![vec![]; capacity],
         }
     }
-    pub fn add(&mut self, district: u8, node: u16) { // don't double-add
-        self.diff[district as usize].push(node as usize);
+    pub fn add(&mut self, district: usize, node: usize) { // don't double-add
+        if district >= self.diff.len() {
+            self.diff.resize(district+1, vec![]);
+        }
+        self.diff[district].push(node);
     }
     pub fn reset(&mut self) {
         for nodes in &mut self.diff {
@@ -126,7 +129,7 @@ fn decode(location: usize, diff: bool) {
 
             mapping[node] = district;
             if diff {
-                delta.add(district, state);
+                delta.add(district as usize, node);
             }
         }
     };
@@ -152,8 +155,8 @@ fn export_mapping<W: std::io::Write>(mut writer: BufWriter<W>, mapping: &[u8]) -
 
 fn encode(extreme: bool) {
     let mut prev_mapping: Vec<usize> = Vec::new();
-    let diff: &mut Vec<Vec<usize>> = &mut vec![vec![]; 40];
-    let alt_diff: &mut Vec<Vec<usize>> = &mut vec![vec![]; 40]; // unused if extreme is false
+    let mut delta: Diff = Diff::new();
+    let mut alt_delta: Diff = Diff::new(); // unused if extreme is false
 
     let stdin = std::io::stdin();
     let mut reader = std::io::BufReader::with_capacity(usize::pow(2, 22), stdin.lock());
@@ -168,7 +171,7 @@ fn encode(extreme: bool) {
             break
         }
         let mut mapping: Vec<usize> = serde_json::from_str(line.trim()).expect("Could not read input.");
-        let (mut diff, written) = compute_diff(&prev_mapping, &mapping, diff);
+        let (mut delta, written) = compute_diff(&prev_mapping, &mapping, &mut delta);
 
         if written {
             // See if we can swap district labels around for better compression
@@ -177,7 +180,7 @@ fn encode(extreme: bool) {
                 let mut first: usize = 0;
                 let mut second: usize = 0;
 
-                for (district, nodes) in diff.iter().enumerate() {
+                for (district, nodes) in delta.diff.iter().enumerate() {
                     if !nodes.is_empty() {
                         if counter == 0 {
                             first = district;
@@ -198,15 +201,15 @@ fn encode(extreme: bool) {
                             return *district;
                         }
                     }).collect::<Vec<usize>>();
-                    let (alt_diff, _alt_written) = compute_diff(&prev_mapping, &swapped_mapping, alt_diff);
-                    if alt_diff.iter().map(|nodes| {nodes.len()}).sum::<usize>() < diff.iter().map(|nodes| {nodes.len()}).sum::<usize>() {
+                    let (alt_delta, _alt_written) = compute_diff(&prev_mapping, &swapped_mapping, &mut alt_delta);
+                    if alt_delta.diff.iter().map(|nodes| {nodes.len()}).sum::<usize>() < delta.diff.iter().map(|nodes| {nodes.len()}).sum::<usize>() {
                         mapping = swapped_mapping;
-                        diff = alt_diff;
+                        delta = alt_delta;
                     }
                 }
             }
 
-            writer = export_diff(writer, diff);
+            writer = export_diff(writer, &delta);
             prev_mapping = mapping;
         }
 
@@ -216,31 +219,25 @@ fn encode(extreme: bool) {
     writer.flush().unwrap();
 }
 
-pub fn compute_diff<'a>(prev_mapping: &[usize], new_mapping: &[usize], diff: &'a mut Vec<Vec<usize>>) -> (&'a Vec<Vec<usize>>, bool) {
-    for nodes in &mut *diff {
-        nodes.clear();
-    }
+pub fn compute_diff<'a>(prev_mapping: &[usize], new_mapping: &[usize], delta: &'a mut Diff) -> (&'a Diff, bool) {
+    delta.reset();
 
     let mut written = false;
     for (node, district) in new_mapping.iter().enumerate() {
         if node >= prev_mapping.len() || prev_mapping[node] != *district { // difference detected
             written = true;
-
-            if *district >= diff.len() {
-                diff.resize(*district+1, vec![]);
-            }
-            diff[*district].push(node);
+            delta.add(*district, node);
         }
     }
-    (diff, written)
+    (delta, written)
 }
 
-pub fn export_diff<W: std::io::Write>(mut writer: BufWriter<W>, diff: &[Vec<usize>]) -> BufWriter<W> {
+pub fn export_diff<W: std::io::Write>(mut writer: BufWriter<W>, delta: &Diff) -> BufWriter<W> {
     // Exports diff to custom binary representation
     let mut first = true;
 
     let mut skipped_districts: u8 = 0;
-    for (_district, nodes) in diff.iter().enumerate() {
+    for (_district, nodes) in delta.diff.iter().enumerate() {
         if nodes.is_empty() {
             skipped_districts += 1;
         } else {
