@@ -17,7 +17,7 @@ exclude = ["julia/", "python/", "zstd/", "examples/", ".*", "pgo.sh"]
 serde_json = "1.0.64"
 structopt = "0.3.21"
 serde = "1.0.127"
-mimalloc = { version = "0.1.17", default-features = false }
+# mimalloc = { version = "0.1.17", default-features = false }
 
 
 [profile.release]

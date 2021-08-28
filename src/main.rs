@@ -5,8 +5,8 @@ use std::io::BufWriter;
 // use serde::ser::Serialize;
 use structopt::StructOpt;
 
-#[global_allocator]
-static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+// #[global_allocator]
+// static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 #[derive(Debug, StructOpt, Clone)]
 #[structopt(
@@ -17,27 +17,56 @@ struct Opt {
     #[structopt(short = "d", long = "decode")]
     decode: bool,
 
-    #[structopt(short = "e", long = "extreme", help = "Enable compression up to district labelings")]
-    extreme: bool,
+    #[structopt(long = "diff", help = "Only display the deltas across each step when decoding")]
+    diff: bool,
 
     #[structopt(short = "l", long = "location", help = "Replay a specific step of a chain (zero-indexed). Zero replays all.", default_value = "0")]
     location: usize,
+
+    #[structopt(short = "e", long = "extreme", help = "Enable compression up to district labelings")]
+    extreme: bool,
+}
+
+struct Diff {
+    diff: Vec<Vec<usize>>
+}
+
+impl Diff {
+    pub fn new() -> Self {
+        Self {
+            diff: vec![vec![]; 40],
+        }
+    }
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self {
+            diff: vec![vec![]; capacity],
+        }
+    }
+    pub fn add(&mut self, district: u8, node: u16) { // don't double-add
+        self.diff[district as usize].push(node as usize);
+    }
+    pub fn reset(&mut self) {
+        for nodes in &mut self.diff {
+            nodes.clear();
+        }
+    }
 }
 
 fn main() {
     let opt = Opt::from_args();
     if opt.decode {
-        decode(opt.location);
+        decode(opt.location, opt.diff);
     } else {
         encode(opt.extreme);
     }
 }
 
-fn decode(location: usize) {
+fn decode(location: usize, diff: bool) {
     let mut counter = 0;
     let mut district = 0;
     let mut prev_byte = 0;
     let mut mapping: Vec<u8> = Vec::with_capacity(1000);
+    let mut delta: Diff = Diff::new();
 
     let stdin = std::io::stdin();
     let reader = std::io::BufReader::with_capacity(usize::pow(2, 24), stdin.lock());
@@ -75,14 +104,13 @@ fn decode(location: usize) {
             new_district = true;
             skip = false; // the only time we only want single bytes
         } else if state == u16::MAX { // export and reset
-            if location == 0 {
-                // mapping.serialize(&mut ser).unwrap();
-                writer = export_json(writer, &mapping);
-            } else {
-                if counter == location {
+            if location == 0 || counter == location {
+                if diff {
+                    writer = export_delta(writer, &mut delta);
+                    delta.reset();
+                } else {
                     // mapping.serialize(&mut ser).unwrap();
-                    writer = export_json(writer, &mapping);
-                    break
+                    writer = export_mapping(writer, &mapping);
                 }
             }
             counter += 1;
@@ -97,13 +125,24 @@ fn decode(location: usize) {
             }
 
             mapping[node] = district;
+            if diff {
+                delta.add(district, state);
+            }
         }
     };
 
     writer.flush().unwrap();
 }
 
-fn export_json<W: std::io::Write>(mut writer: BufWriter<W>, mapping: &[u8]) -> BufWriter<W> {
+fn export_delta<W: std::io::Write>(mut writer: BufWriter<W>, delta: &mut Diff) -> BufWriter<W> {
+    // writer.write_all(format!("{:?}", mapping).as_bytes()).unwrap();
+    // writer.write_all(&serde_json::to_string(mapping).unwrap().into_bytes()).unwrap();
+    writer.write_all(&serde_json::to_vec(&delta.diff).unwrap()).unwrap();
+    writer.write_all("\n".as_bytes()).unwrap();
+    writer
+}
+
+fn export_mapping<W: std::io::Write>(mut writer: BufWriter<W>, mapping: &[u8]) -> BufWriter<W> {
     // writer.write_all(format!("{:?}", mapping).as_bytes()).unwrap();
     // writer.write_all(&serde_json::to_string(mapping).unwrap().into_bytes()).unwrap();
     writer.write_all(&serde_json::to_vec(mapping).unwrap()).unwrap();
