@@ -5,7 +5,7 @@ pub struct Diff {
 impl Diff {
     pub fn new() -> Self {
         Self {
-            diff: vec![vec![]; 40],
+            diff: vec![vec![]; 20],
         }
     }
     pub fn with_capacity(capacity: usize) -> Self {
