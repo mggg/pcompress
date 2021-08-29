@@ -36,8 +36,8 @@ class Record:
                 executable = "pcompress -e"
 
             self.child = subprocess.Popen(
-                # f"{executable} | xz -e -T {self.threads} > {self.filename}",
-                f"{executable} | xz --lzma2=preset=9e,lp=1,lc=0,pb=0,mf=bt3 -T {self.threads} > {self.filename}",
+                f"{executable} | xz -e -T {self.threads} > {self.filename}",
+                # f"{executable} | xz --lzma2=preset=9e,lp=1,lc=0,pb=0,mf=bt3 -T {self.threads} > {self.filename}",
                 shell=True,
                 stdin=subprocess.PIPE,
             )
