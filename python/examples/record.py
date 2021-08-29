@@ -18,9 +18,8 @@ import tqdm
 
 graph = Graph.from_json("../examples/PA_VTDs.json")
 
-my_updaters = {"population": updaters.Tally("TOTPOP", alias="population")}
 initial_partition = GeographicPartition(
-    graph, assignment="CD_2011", updaters=my_updaters
+    graph, assignment="CD_2011"
 )
 
 ideal_population = sum(initial_partition["population"].values()) / len(
