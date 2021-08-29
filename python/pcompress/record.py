@@ -1,6 +1,7 @@
 from gerrychain import Partition, GeographicPartition
 from gerrychain.partition.assignment import Assignment
 from collections.abc import Iterable
+from itertools import chain
 # import ast
 import json
 import multiprocessing
@@ -95,6 +96,7 @@ class Replay:
         # executable="pv",
         threads=None,
         geographic=False,
+        flips=True,
         *args,
         **kwargs,
     ):
@@ -102,6 +104,7 @@ class Replay:
         self.filename = filename
         self.updaters = updaters
         self.geographic = geographic
+        self.flips = flips
 
         self.args = args
         self.kwargs = kwargs
@@ -111,28 +114,89 @@ class Replay:
         else:
             self.threads = threads
 
+        if self.flips and executable == "pcompress -d":
+            executable = "pcompress -d --diff"
+
         self.child = subprocess.Popen(
             f"/bin/bash -c 'cat {self.filename} | unxz -T {self.threads} | {executable}'",
             shell=True,
             stdout=subprocess.PIPE,
         )
 
+        self.counter = 0
+
+    def terminate_child(self):
+        """
+        A blocking call to terminate the child
+        """
+        self.child.terminate()
+        self.child.wait()
+
     def __iter__(self):
         return self
 
     def __next__(self):
+        if self.flips:
+            partition = self.read_flips()
+        else:
+            partition = self.read_assignment()
+
+        self.counter += 1
+        return partition
+
+    def read_flips(self):
+        delta_line = self.child.stdout.readline()
+        if not delta_line:
+            self.terminate_child()
+            raise StopIteration
+
+        # assignment = ast.literal_eval(assignment_line.decode().rstrip())
+        delta = json.loads(delta_line)
+
+        if not isinstance(delta, list) or not delta:
+            self.terminate_child()
+            raise TypeError("Invalid chain!")
+
+        delta_assignment = {}
+        for district, nodes in enumerate(delta):  # GerryChain is 1-indexed
+            for node in nodes:
+                delta_assignment[node] = district+1
+
+        if self.counter == 0:
+            if self.geographic:
+                self.partition = GeographicPartition(
+                    self.graph,
+                    delta_assignment,
+                    # Assignment.from_dict(dict(enumerate(assignment))),
+                    self.updaters,
+                    *self.args,
+                    **self.kwargs,
+                )
+            else:
+                self.partition = Partition(
+                    self.graph,
+                    delta_assignment,
+                    # Assignment.from_dict(dict(enumerate(assignment))),
+                    self.updaters,
+                    *self.args,
+                    **self.kwargs,
+                )
+        else:
+            self.partition = self.partition.flip(delta_assignment)
+
+        return self.partition
+
+    def read_assignment(self):
         assignment_line = self.child.stdout.readline()
         if not assignment_line:
-            self.child.terminate()
-            self.child.wait()
+            self.terminate_child()
             raise StopIteration
 
         # assignment = ast.literal_eval(assignment_line.decode().rstrip())
         assignment = json.loads(assignment_line)
 
         if not isinstance(assignment, list) or not assignment:
-            self.child.terminate()
-            self.child.wait()
+            self.terminate_child()
             raise TypeError("Invalid chain!")
 
         assignment = [x+1 for x in assignment]  # GerryChain is 1-indexed

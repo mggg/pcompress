@@ -43,7 +43,6 @@ pub fn decode<R: Read, W: Write>(reader: std::io::BufReader<R>, mut writer: std:
             if location == 0 || counter == location {
                 if diff {
                     writer = export_delta(writer, &mut delta);
-                    delta.reset();
                 } else {
                     // mapping.serialize(&mut ser).unwrap();
                     writer = export_mapping(writer, &mapping);
@@ -52,6 +51,9 @@ pub fn decode<R: Read, W: Write>(reader: std::io::BufReader<R>, mut writer: std:
             counter += 1;
             district = 0;
             prev_byte = 0;
+            if diff {
+                delta.reset();
+            }
         } else {
             let node = state as usize;
 
