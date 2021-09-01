@@ -11,7 +11,11 @@ cargo install pcompress
 pip install pcompress
 ```
 
-## Usage (recording)
+## Python Usage
+Note that `chain` is a normal MarkovChain object and `graph` is a normal GerryChain graph.
+
+#### Recording
+
 ```python
 from pcompress import Record
 
@@ -19,8 +23,8 @@ for partition in Record(chain, "pa-run.chain"):
     # normal chain stuff here
 ```
 
+#### Replaying
 
-## Usage (replaying)
 ```python
 from pcompress import Record
 
