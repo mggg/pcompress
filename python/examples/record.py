@@ -44,7 +44,7 @@ chain = MarkovChain(
     constraints=[pop_constraint],
     accept=accept.always_accept,
     initial_state=initial_partition,
-    total_steps=10,
+    total_steps=1000,
 )
 
 for partition in pcompress.Record(chain, "run.chain"):
