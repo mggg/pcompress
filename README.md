@@ -28,6 +28,6 @@ for partition in Record(chain, "pa-run.chain"):
 ```python
 from pcompress import Record
 
-for partition in Replay(graph, chain, "pa-run.chain", updaters=my_updaters):
+for partition in Replay(graph, "pa-run.chain", updaters=my_updaters):
    # normal chain stuff here
 ```
