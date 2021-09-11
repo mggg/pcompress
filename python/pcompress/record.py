@@ -58,7 +58,8 @@ class Record:
         try:
             step = next(self.chain)
             assignment = list(step.assignment.to_series().sort_index())
-            assignment = [x-1 for x in assignment]  # GerryChain is 1-indexed
+            minimum = min(assignment)
+            assignment = [x-minimum for x in assignment]  # GerryChain is sometimes 1-indexed
 
             state = str(assignment).rstrip() + "\n"
             # self.child.sendline(state.encode())
