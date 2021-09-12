@@ -165,22 +165,22 @@ class Replay:
                 delta_assignment[node] = district+1
 
         if self.counter == 0:
+            args = [
+                self.graph,
+                delta_assignment,
+            ]
+            if self.updaters:
+                args.append(self.updaters)
+            args.extend(self.args)
+
             if self.geographic:
                 self.partition = GeographicPartition(
-                    self.graph,
-                    delta_assignment,
-                    # Assignment.from_dict(dict(enumerate(assignment))),
-                    self.updaters,
-                    *self.args,
+                    *args,
                     **self.kwargs,
                 )
             else:
                 self.partition = Partition(
-                    self.graph,
-                    delta_assignment,
-                    # Assignment.from_dict(dict(enumerate(assignment))),
-                    self.updaters,
-                    *self.args,
+                    *args,
                     **self.kwargs,
                 )
         else:
@@ -203,21 +203,21 @@ class Replay:
 
         assignment = [x+1 for x in assignment]  # GerryChain is 1-indexed
 
+        args = [
+            self.graph,
+            dict(enumerate(assignment)),
+        ]
+        if self.updaters:
+            args.append(self.updaters)
+        args.extend(self.args)
+
         if self.geographic:
             return GeographicPartition(
-                self.graph,
-                dict(enumerate(assignment)),
-                # Assignment.from_dict(dict(enumerate(assignment))),
-                self.updaters,
-                *self.args,
+                *args,
                 **self.kwargs,
             )
         else:
             return Partition(
-                self.graph,
-                dict(enumerate(assignment)),
-                # Assignment.from_dict(dict(enumerate(assignment))),
-                self.updaters,
-                *self.args,
+                *args,
                 **self.kwargs,
             )
