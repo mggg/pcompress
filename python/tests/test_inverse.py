@@ -94,3 +94,18 @@ def test_inverse(geographic):
         new_partition_assignment = list(new_partition.sort_index())
         for i, each_value in enumerate(partition_assignment):
             assert each_value == new_partition_assignment[i], i
+
+@pytest.mark.parametrize("extreme, geographic, flips", itertools.product([True, False], repeat=3))
+def test_no_updater(extreme, geographic, flips):
+    """
+    Test that population counts remain the same
+    """
+    populations = []
+    new_populations = []
+
+    for partition in pcompress.Record(chain, "run.chain", extreme=extreme):
+        assert partition.population.values()
+
+    for c, partition in enumerate(pcompress.Replay(graph, "run.chain", geographic=geographic, flips=flips)):
+        pass
+    assert c
