@@ -1,6 +1,6 @@
 from gerrychain import Partition, GeographicPartition
 from gerrychain.partition.assignment import Assignment
-from collections.abc import Iterable
+from typing import Iterable
 from itertools import chain
 # import ast
 import json
@@ -57,7 +57,7 @@ class Record:
     def __next__(self):
         try:
             step = next(self.chain)
-            assignment = list(step.assignment.to_series().sort_index())
+            assignment = list(step.assignment.to_series().sort_index().astype(int))
             minimum = min(assignment)
             assignment = [x-minimum for x in assignment]  # GerryChain is sometimes 1-indexed
 
