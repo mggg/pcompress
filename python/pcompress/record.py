@@ -69,6 +69,10 @@ class Record:
         except StopIteration:  # kill child process
             self.child.stdin.close()
             self.child.wait()
+
+            self.child.terminate()
+            self.child.wait()
+
             raise
 
     def sendline(self, state):
