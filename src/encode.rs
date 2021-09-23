@@ -16,45 +16,43 @@ pub fn encode<R: Read, W: Write>(mut reader: std::io::BufReader<R>, mut writer: 
         let mut mapping: Vec<usize> = serde_json::from_str(line.trim()).expect("Could not read input.");
         let (mut delta, written) = compute_diff(&prev_mapping, &mapping, &mut delta);
 
-        if written {
-            // See if we can swap district labels around for better compression
-            if extreme { // assumes only two districts are being swapped
-                let mut counter: usize = 0;
-                let mut first: usize = 0;
-                let mut second: usize = 0;
+        // See if we can swap district labels around for better compression
+        if extreme { // assumes only two districts are being swapped
+            let mut counter: usize = 0;
+            let mut first: usize = 0;
+            let mut second: usize = 0;
 
-                for (district, nodes) in delta.diff.iter().enumerate() {
-                    if !nodes.is_empty() {
-                        if counter == 0 {
-                            first = district;
-                        } else if counter == 1 {
-                            second = district;
-                        }
-                        counter += 1;
+            for (district, nodes) in delta.diff.iter().enumerate() {
+                if !nodes.is_empty() {
+                    if counter == 0 {
+                        first = district;
+                    } else if counter == 1 {
+                        second = district;
                     }
-                }
-
-                if counter == 2 { // ensure only two districts are being swapped
-                    let swapped_mapping: Vec<usize> = mapping.iter().map(|district| {
-                        if *district == first {
-                            return second;
-                        } else if *district == second {
-                            return first;
-                        } else {
-                            return *district;
-                        }
-                    }).collect::<Vec<usize>>();
-                    let (alt_delta, _alt_written) = compute_diff(&prev_mapping, &swapped_mapping, &mut alt_delta);
-                    if alt_delta.diff.iter().map(|nodes| {nodes.len()}).sum::<usize>() < delta.diff.iter().map(|nodes| {nodes.len()}).sum::<usize>() {
-                        mapping = swapped_mapping;
-                        delta = alt_delta;
-                    }
+                    counter += 1;
                 }
             }
 
-            writer = export_diff(writer, &delta);
-            prev_mapping = mapping;
+            if counter == 2 { // ensure only two districts are being swapped
+                let swapped_mapping: Vec<usize> = mapping.iter().map(|district| {
+                    if *district == first {
+                        return second;
+                    } else if *district == second {
+                        return first;
+                    } else {
+                        return *district;
+                    }
+                }).collect::<Vec<usize>>();
+                let (alt_delta, _alt_written) = compute_diff(&prev_mapping, &swapped_mapping, &mut alt_delta);
+                if alt_delta.diff.iter().map(|nodes| {nodes.len()}).sum::<usize>() < delta.diff.iter().map(|nodes| {nodes.len()}).sum::<usize>() {
+                    mapping = swapped_mapping;
+                    delta = alt_delta;
+                }
+            }
         }
+
+        writer = export_diff(writer, &delta);
+        prev_mapping = mapping;
 
         line.clear();
     }
