@@ -25,6 +25,7 @@ class Record:
         self.chain = iter(chain)
         self.filename = filename
         self.extreme = extreme
+        self.executable = executable
 
         if not threads:
             self.threads = multiprocessing.cpu_count()
@@ -32,18 +33,18 @@ class Record:
             self.threads = threads
 
         if self.extreme:
-            if executable == "pcompress":
-                executable = "pcompress -e"
+            if self.executable == "pcompress":
+                self.executable = "pcompress -e"
 
             self.child = subprocess.Popen(
-                f"{executable} | xz -e -T {self.threads} > {self.filename}",
-                # f"{executable} | xz --lzma2=preset=9e,lp=1,lc=0,pb=0,mf=bt3 -T {self.threads} > {self.filename}",
+                f"{self.executable} | xz -e -T {self.threads} > {self.filename}",
+                # f"{self.executable} | xz --lzma2=preset=9e,lp=1,lc=0,pb=0,mf=bt3 -T {self.threads} > {self.filename}",
                 shell=True,
                 stdin=subprocess.PIPE,
             )
         else:
             self.child = subprocess.Popen(
-                f"{executable} | xz -T {self.threads} > {self.filename}",
+                f"{self.executable} | xz -T {self.threads} > {self.filename}",
                 shell=True,
                 stdin=subprocess.PIPE,
             )
@@ -111,6 +112,7 @@ class Replay:
         self.updaters = updaters
         self.geographic = geographic
         self.flips = flips
+        self.executable = executable
 
         self.args = args
         self.kwargs = kwargs
@@ -120,16 +122,33 @@ class Replay:
         else:
             self.threads = threads
 
-        if self.flips and executable == "pcompress -d":
-            executable = "pcompress -d --diff"
+        if self.flips and self.executable == "pcompress -d":
+            self.executable = "pcompress -d --diff"
 
         self.child = subprocess.Popen(
-            f"/bin/bash -c 'cat {self.filename} | unxz -T {self.threads} | {executable}'",
+            f"/bin/bash -c 'cat {self.filename} | unxz -T {self.threads} | {self.executable}'",
             shell=True,
             stdout=subprocess.PIPE,
         )
 
         self.counter = 0
+        self.length = None
+
+    def __len__(self):
+        """
+        A slightly expensive way to calculate chain lengths
+        """
+        if self.length is None:
+            counter = subprocess.Popen(
+                f"/bin/bash -c 'cat {self.filename} | unxz -T {self.threads} | {self.executable} | wc -l'",
+                shell=True,
+                stdout=subprocess.PIPE,
+            )
+            self.length = int(counter.stdout.readline().rstrip())
+            counter.terminate()
+            counter.wait()
+
+        return self.length
 
     def terminate_child(self):
         """
