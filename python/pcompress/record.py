@@ -163,6 +163,9 @@ class Replay:
     def __next__(self):
         if self.flips:
             partition = self.read_flips()
+
+            if partition.parent:
+                partition.parent.parent = None
         else:
             partition = self.read_assignment()
 
