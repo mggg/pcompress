@@ -60,7 +60,7 @@ pub fn encode<R: Read, W: Write>(mut reader: std::io::BufReader<R>, mut writer: 
     writer.flush().unwrap();
 }
 
-fn compute_diff<'a>(prev_mapping: &[usize], new_mapping: &[usize], delta: &'a mut Diff) -> (&'a Diff, bool) {
+pub fn compute_diff<'a>(prev_mapping: &[usize], new_mapping: &[usize], delta: &'a mut Diff) -> (&'a Diff, bool) {
     delta.reset();
 
     let mut written = false;
@@ -73,7 +73,7 @@ fn compute_diff<'a>(prev_mapping: &[usize], new_mapping: &[usize], delta: &'a mu
     (delta, written)
 }
 
-fn export_diff<W: std::io::Write>(mut writer: BufWriter<W>, delta: &Diff) -> BufWriter<W> {
+pub fn export_diff<W: std::io::Write>(mut writer: BufWriter<W>, delta: &Diff) -> BufWriter<W> {
     // Exports diff to custom binary representation
     let mut first = true;
 
