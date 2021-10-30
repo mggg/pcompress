@@ -1,8 +1,7 @@
 use structopt::StructOpt;
 
-mod decode;
-mod encode;
-mod diff;
+use pcompress::decode::decode;
+use pcompress::encode::encode;
 
 // #[global_allocator]
 // static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
@@ -16,13 +15,25 @@ struct Opt {
     #[structopt(short = "d", long = "decode")]
     decode: bool,
 
-    #[structopt(long = "diff", help = "Only display the deltas across each step when decoding")]
+    #[structopt(
+        long = "diff",
+        help = "Only display the deltas across each step when decoding"
+    )]
     diff: bool,
 
-    #[structopt(short = "l", long = "location", help = "Replay a specific step of a chain (zero-indexed). Zero replays all.", default_value = "0")]
+    #[structopt(
+        short = "l",
+        long = "location",
+        help = "Replay a specific step of a chain (zero-indexed). Zero replays all.",
+        default_value = "0"
+    )]
     location: usize,
 
-    #[structopt(short = "e", long = "extreme", help = "Enable compression up to district labelings")]
+    #[structopt(
+        short = "e",
+        long = "extreme",
+        help = "Enable compression up to district labelings"
+    )]
     extreme: bool,
 }
 
@@ -35,10 +46,8 @@ fn main() {
 
     let opt = Opt::from_args();
     if opt.decode {
-        decode::decode(reader, writer, opt.location, opt.diff);
+        pcompress::decode::decode(reader, writer, opt.location, opt.diff);
     } else {
-        encode::encode(reader, writer, opt.extreme);
+        pcompress::encode::encode(reader, writer, opt.extreme);
     }
 }
-
-

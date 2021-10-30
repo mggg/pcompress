@@ -13,9 +13,10 @@ impl Diff {
             diff: vec![vec![]; capacity],
         }
     }
-    pub fn add(&mut self, district: usize, node: usize) { // don't double-add
+    pub fn add(&mut self, district: usize, node: usize) {
+        // don't double-add
         if district >= self.diff.len() {
-            self.diff.resize(district+1, vec![]);
+            self.diff.resize(district + 1, vec![]);
         }
         self.diff[district].push(node);
     }
