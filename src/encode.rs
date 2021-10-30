@@ -3,8 +3,8 @@ use std::io::{BufRead, BufWriter, Read, Write};
 use super::diff::Diff;
 
 pub fn encode<R: Read, W: Write>(
-    mut reader: std::io::BufReader<R>,
-    mut writer: std::io::BufWriter<W>,
+    reader: &mut std::io::BufReader<R>,
+    mut writer: &mut std::io::BufWriter<W>,
     extreme: bool,
 ) {
     let mut prev_mapping: Vec<usize> = Vec::new();
@@ -69,7 +69,7 @@ pub fn encode<R: Read, W: Write>(
             }
         }
 
-        writer = export_diff(writer, &delta);
+        writer = export_diff(writer, delta);
         prev_mapping = mapping;
 
         line.clear();
@@ -96,7 +96,10 @@ pub fn compute_diff<'a>(
     (delta, written)
 }
 
-pub fn export_diff<W: std::io::Write>(mut writer: BufWriter<W>, delta: &Diff) -> BufWriter<W> {
+pub fn export_diff<'a, W: std::io::Write>(
+    writer: &'a mut BufWriter<W>,
+    delta: &Diff,
+) -> &'a mut BufWriter<W> {
     // Exports diff to custom binary representation
     let mut first = true;
 

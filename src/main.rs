@@ -36,15 +36,15 @@ struct Opt {
 
 fn main() {
     let stdin = std::io::stdin();
-    let reader = std::io::BufReader::with_capacity(usize::pow(2, 24), stdin.lock());
+    let mut reader = std::io::BufReader::with_capacity(usize::pow(2, 24), stdin.lock());
 
     let stdout = std::io::stdout();
-    let writer = std::io::BufWriter::with_capacity(usize::pow(2, 24), stdout.lock());
+    let mut writer = std::io::BufWriter::with_capacity(usize::pow(2, 24), stdout.lock());
 
     let opt = Opt::from_args();
     if opt.decode {
-        pcompress::decode::decode(reader, writer, opt.location, opt.diff);
+        pcompress::decode::decode(&mut reader, &mut writer, opt.location, opt.diff);
     } else {
-        pcompress::encode::encode(reader, writer, opt.extreme);
+        pcompress::encode::encode(&mut reader, &mut writer, opt.extreme);
     }
 }

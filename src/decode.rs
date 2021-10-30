@@ -3,8 +3,8 @@ use std::io::{BufWriter, Read, Write};
 use super::diff::Diff;
 
 pub fn decode<R: Read, W: Write>(
-    reader: std::io::BufReader<R>,
-    mut writer: std::io::BufWriter<W>,
+    reader: &mut std::io::BufReader<R>,
+    mut writer: &mut std::io::BufWriter<W>,
     location: usize,
     diff: bool,
 ) {
@@ -79,7 +79,10 @@ pub fn decode<R: Read, W: Write>(
     writer.flush().unwrap();
 }
 
-fn export_delta<W: std::io::Write>(mut writer: BufWriter<W>, delta: &mut Diff) -> BufWriter<W> {
+fn export_delta<'a, W: std::io::Write>(
+    writer: &'a mut BufWriter<W>,
+    delta: &mut Diff,
+) -> &'a mut BufWriter<W> {
     // writer.write_all(format!("{:?}", mapping).as_bytes()).unwrap();
     // writer.write_all(&serde_json::to_string(mapping).unwrap().into_bytes()).unwrap();
     writer
@@ -89,7 +92,10 @@ fn export_delta<W: std::io::Write>(mut writer: BufWriter<W>, delta: &mut Diff) -
     writer
 }
 
-fn export_mapping<W: std::io::Write>(mut writer: BufWriter<W>, mapping: &[u8]) -> BufWriter<W> {
+fn export_mapping<'a, W: std::io::Write>(
+    writer: &'a mut BufWriter<W>,
+    mapping: &[u8],
+) -> &'a mut BufWriter<W> {
     // writer.write_all(format!("{:?}", mapping).as_bytes()).unwrap();
     // writer.write_all(&serde_json::to_string(mapping).unwrap().into_bytes()).unwrap();
     writer
