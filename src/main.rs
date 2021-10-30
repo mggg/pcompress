@@ -1,8 +1,5 @@
 use structopt::StructOpt;
 
-use pcompress::decode::decode;
-use pcompress::encode::encode;
-
 // #[global_allocator]
 // static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 

@@ -1,6 +1,6 @@
 [package]
 name = "pcompress"
-version = "1.0.4"
+version = "1.0.5"
 authors = ["Max Fan <root@max.fan>"]
 description = "Experimental, efficient, and performant binary representation of districting plans"
 readme = "README.md"

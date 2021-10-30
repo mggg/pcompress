@@ -20,7 +20,7 @@ pub fn encode<R: Read, W: Write>(
         }
         let mut mapping: Vec<usize> =
             serde_json::from_str(line.trim()).expect("Could not read input.");
-        let (mut delta, written) = compute_diff(&prev_mapping, &mapping, &mut delta);
+        let (mut delta, _written) = compute_diff(&prev_mapping, &mapping, &mut delta);
 
         // See if we can swap district labels around for better compression
         if extreme {
