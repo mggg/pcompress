@@ -51,5 +51,5 @@ for partition in Replay(graph, "pa-run.chain", updaters=my_updaters):
 For more examples with GerryChain Python, [look here](https://github.com/InnovativeInventor/pcompress/blob/main/python/demo/pcompress-demo.ipynb).
 
 ## License and Credit
-`pcompress` is written and maintained by [Max Fan](https://max.fan) and is licensed under the [AGPLv3 license](LICENSE.md).
+`pcompress` is written and maintained by [Max Fan](https://max.fan) and is licensed under the [AGPLv3 license](LICENSE).
 If you want to contribute, PRs are always welcome.
