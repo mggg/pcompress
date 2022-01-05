@@ -59,11 +59,7 @@ class Record:
         try:
             step = next(self.chain)
             assignment = list(step.assignment.to_series().sort_index().astype(int))
-            minimum = min(assignment)
-            assignment = [x-minimum for x in assignment]  # GerryChain is sometimes 1-indexed
-
             state = str(assignment).rstrip() + "\n"
-            # self.child.sendline(state.encode())
             self.child.stdin.write(state.encode())
             return step
 
@@ -188,7 +184,7 @@ class Replay:
         delta_assignment = {}
         for district, nodes in enumerate(delta):  # GerryChain is 1-indexed
             for node in nodes:
-                delta_assignment[node] = district+1
+                delta_assignment[node] = district
 
         if self.counter == 0:
             args = [
@@ -227,7 +223,7 @@ class Replay:
             self.terminate_child()
             raise TypeError("Invalid chain!")
 
-        assignment = [x+1 for x in assignment]  # GerryChain is 1-indexed
+        assignment = [x for x in assignment]  # GerryChain is 1-indexed
 
         args = [
             self.graph,
