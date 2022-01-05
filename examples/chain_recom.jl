@@ -15,7 +15,7 @@ num_steps = 10000
 # Run the chain
 for (partition, _) in recom_chain_iter(graph, partition, pop_constraint, num_steps, [DistrictAggregate("presd", "PRES12D")])
 
-    write(stdout, repr(partition.assignments), "\n")
+    write(stdout, repr(partition.assignments .- 1), "\n")
 
     ## Alternatively, one could do: (slow)
     # show(repr(partition.assignments))
