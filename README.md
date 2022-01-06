@@ -1,10 +1,10 @@
 ## pcompress
-Currently it is hard to store the state of every single step of a Markov Chain Monte Carlo run from [GerryChain Python](https://github.com/mggg/GerryChain) or [GerryChain Julia](https://github.com/mggg/GerryChainJulia).
-This repo aims to produce an efficient intermediate binary representation of partitions/districting assignments that will enable generated plans to be saved on-the-fly.
+Previously, it was hard to store the state of every single step of a Markov Chain Monte Carlo run from [GerryChain Python](https://github.com/mggg/GerryChain) or [GerryChain Julia](https://github.com/mggg/GerryChainJulia).
+This repo produces an efficient, streamable intermediate binary representation of partitions/districting assignments that enables generated plans to be saved (and analyzed) on-the-fly.
 Each step is represented as the diff from the previous step, enabling a significant reduction in disk usage per step.
 The intermediate representation is then compressed with LZMA2 (via XZ).
 
-With pcompress, you can save/replay MCMC runs in a portable format, enabling our current use cases such as:
+With pcompress, you can save/replay MCMC runs in a common portable format, enabling our current use cases such as:
 - proactively running MCMC on various states, then replaying at much higher speeds (e.g. 10-30x in PA at the congressional level) for quick analysis turnaround time
 - taking advantage of the speed of GerryChain Julia (or [frcw.rs](https://github.com/pjrule/frcw.rs)) while using the rich analysis tooling in GerryChain Python
 - comparing the various MCMC implementations (Julia, Rust, and Python) using pcompress's interoperability features
