@@ -16,6 +16,7 @@ With pcompress, you can save/replay MCMC runs in a portable format, enabling our
 ## Performance
 These stats are from the initial annoucement of `pcompress` at lab meeting.
 Note that these metrics may be slightly outdated -- you may see better real-world performance.
+Additionally, these metrics do not take into account updaters/scoring overhead (as this is dependent on the user's code).
 
 ![performance stats](stats/performance-slide.png)
 
