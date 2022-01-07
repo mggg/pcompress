@@ -1,31 +1,48 @@
-from gerrychain import Partition, GeographicPartition
-from gerrychain.partition.assignment import Assignment
+from .utils import compute_graph_hash
+
+from gerrychain import Partition
 from typing import Iterable
-from itertools import chain
-# import ast
-import json
+import time
 import multiprocessing
+import inspect
+import getpass
+import os
+import sys
+import git
+import requests
+import pkg_resources
 
 import subprocess
 
-import functools
-import sys
-
+ESSENTIAL_PKGS = ["pcompress", "gerrychain", "maup", "geopandas", "shapely", "evaltools", "pygeos"]
 
 class Record:
     def __init__(
         self,
         chain: Iterable[Partition],
         filename,
-        executable="pcompress",
+        executable: str = "pcompress",
         # executable="pv",
-        threads=None,
-        extreme=True,
+        threads: int = None,
+        extreme: bool = True,
+        metadata: dict = {},
+        cloud: bool = False,
+        cloud_url: str = "http://127.0.0.1:5000",
+        api_key: str = None
     ):
         self.chain = iter(chain)
         self.filename = filename
         self.extreme = extreme
         self.executable = executable
+        self.cloud = cloud
+        self.cloud_url = cloud_url
+        self.metadata = metadata
+        self.start_time = int(time.time())
+
+        if not api_key:
+            self.api_key = os.environ.get("GERRYCHAIN_API_KEY")
+        else:
+            self.api_key = api_key
 
         if not threads:
             self.threads = multiprocessing.cpu_count()
@@ -64,182 +81,65 @@ class Record:
             return step
 
         except StopIteration:  # kill child process
+            self.end_time = int(time.time())
+
             self.child.stdin.close()
             self.child.wait()
 
             self.child.terminate()
             self.child.wait()
 
+            if self.cloud:
+                time.sleep(1)
+                self.metadata |= {
+                    "start_timestamp": self.start_time, 
+                    "end_timestamp": self.end_time, 
+                    "filename": self.filename, 
+                    "graph_hash": compute_graph_hash(self.chain.state.graph),
+                    "user": getpass.getuser(),
+                    "git_commit": None,
+                    "git_repo_clean": None,
+                    "shasum256": subprocess.run(f"shasum -a 256 {self.filename}", shell=True, capture_output=True).stdout.decode()
+                }
+
+                for pkg in ESSENTIAL_PKGS:
+                    try:
+                        self.metadata[f"{pkg}_version"] = pkg_resources.get_distribution(pkg).version
+                    except pkg_resources.DistributionNotFound:
+                        self.metadata[f"{pkg}_version"] = "Not installed"
+                    self.metadata["python_version"] = sys.version
+
+                try:
+                    repo = git.Repo(".", search_parent_directories=True)
+                    if repo.index.diff(repo.head.commit) or repo.untracked_files:
+                        dirty = True
+                        self.metadata["git_repo_clean"] = False
+                    else:
+                        self.metadata["git_repo_clean"] = True
+
+                    self.metadata["git_commit"] = str(repo.head.commit.hexsha)
+                
+                    self.metadata["call_stack"] = ",".join(
+                        x.filename for x in inspect.stack()
+                    ) 
+
+                except (git.exc.InvalidGitRepositoryError, ValueError) as e:
+                    pass
+
+                with open(self.filename, "rb") as f:
+                    upload_status = requests.post(self.cloud_url, files={
+                        "pcompress": f
+                    }, data = self.metadata, headers= {
+                        "GERRYCHAIN-API-KEY": self.api_key
+                    })
+
+                # TODO: switch to using UserWarnings
+                if upload_status.status_code == 200:
+                    print("Chain object uploaded as:", upload_status.text, "with hash", self.metadata["shasum256"])  
+                    self.identifier = upload_status.text
+                elif upload_status.status_code == 401:
+                    print("Access denied. Upload failed.", file=sys.stderr)
+                else:
+                    print("Server error. Upload failed.", file=sys.stderr)
+
             raise
-
-    def sendline(self, state):
-        # bytestring = b""
-        counter = 0
-        limit = 1024
-        while counter < len(state):
-            if counter+limit < len(state):
-                # bytestring += state[counter:counter+limit]
-                self.child.send(state[counter:counter+limit])
-            else:
-                # bytestring += state[counter:]
-                self.child.send(state[counter:])
-            counter += limit
-
-        # assert len(bytestring) == len(state)
-        self.child.send("\n".encode())
-        return True
-
-class Replay:
-    def __init__(
-        self,
-        graph,
-        filename,
-        updaters=None,
-        executable="pcompress -d",
-        # executable="pv",
-        threads=None,
-        geographic=False,
-        flips=True,
-        *args,
-        **kwargs,
-    ):
-        self.graph = graph
-        self.filename = filename
-        self.updaters = updaters
-        self.geographic = geographic
-        self.flips = flips
-        self.executable = executable
-
-        self.args = args
-        self.kwargs = kwargs
-
-        if not threads:
-            self.threads = multiprocessing.cpu_count()
-        else:
-            self.threads = threads
-
-        if self.flips and self.executable == "pcompress -d":
-            self.executable = "pcompress -d --diff"
-
-        self.child = subprocess.Popen(
-            f"/bin/bash -c 'cat {self.filename} | unxz -T {self.threads} | {self.executable}'",
-            shell=True,
-            stdout=subprocess.PIPE,
-        )
-
-        self.counter = 0
-        self.length = None
-
-    def __len__(self):
-        """
-        A slightly expensive way to calculate chain lengths
-        """
-        if self.length is None:
-            counter = subprocess.Popen(
-                f"/bin/bash -c 'cat {self.filename} | unxz -T {self.threads} | {self.executable} | wc -l'",
-                shell=True,
-                stdout=subprocess.PIPE,
-            )
-            self.length = int(counter.stdout.readline().rstrip())
-            counter.terminate()
-            counter.wait()
-
-        return self.length
-
-    def terminate_child(self):
-        """
-        A blocking call to terminate the child
-        """
-        self.child.terminate()
-        self.child.wait()
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        if self.flips:
-            partition = self.read_flips()
-
-            if partition.parent:
-                partition.parent.parent = None
-        else:
-            partition = self.read_assignment()
-
-        self.counter += 1
-        return partition
-
-    def read_flips(self):
-        delta_line = self.child.stdout.readline()
-        if not delta_line:
-            self.terminate_child()
-            raise StopIteration
-
-        # assignment = ast.literal_eval(assignment_line.decode().rstrip())
-        delta = json.loads(delta_line)
-
-        if not isinstance(delta, list) or not delta:
-            self.terminate_child()
-            raise TypeError("Invalid chain!")
-
-        delta_assignment = {}
-        for district, nodes in enumerate(delta):  # GerryChain is 1-indexed
-            for node in nodes:
-                delta_assignment[node] = district
-
-        if self.counter == 0:
-            args = [
-                self.graph,
-                delta_assignment,
-            ]
-            if self.updaters:
-                args.append(self.updaters)
-            args.extend(self.args)
-
-            if self.geographic:
-                self.partition = GeographicPartition(
-                    *args,
-                    **self.kwargs,
-                )
-            else:
-                self.partition = Partition(
-                    *args,
-                    **self.kwargs,
-                )
-        else:
-            self.partition = self.partition.flip(delta_assignment)
-
-        return self.partition
-
-    def read_assignment(self):
-        assignment_line = self.child.stdout.readline()
-        if not assignment_line:
-            self.terminate_child()
-            raise StopIteration
-
-        # assignment = ast.literal_eval(assignment_line.decode().rstrip())
-        assignment = json.loads(assignment_line)
-
-        if not isinstance(assignment, list) or not assignment:
-            self.terminate_child()
-            raise TypeError("Invalid chain!")
-
-        assignment = [x for x in assignment]  # GerryChain is 1-indexed
-
-        args = [
-            self.graph,
-            dict(enumerate(assignment)),
-        ]
-        if self.updaters:
-            args.append(self.updaters)
-        args.extend(self.args)
-
-        if self.geographic:
-            return GeographicPartition(
-                *args,
-                **self.kwargs,
-            )
-        else:
-            return Partition(
-                *args,
-                **self.kwargs,
-            )

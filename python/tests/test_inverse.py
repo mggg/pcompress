@@ -1,5 +1,4 @@
-import matplotlib.pyplot as plt
-import pandas as pd
+import time
 import pcompress
 import itertools
 import pytest
@@ -61,24 +60,32 @@ def test_population(extreme, geographic):
     """
     populations = []
     new_populations = []
+    cloud_populations = []
 
-    for partition in pcompress.Record(chain, "run.chain", extreme=extreme):
+    recorded_chain = pcompress.Record(chain, "run.chain", extreme=extreme, cloud=True, metadata = {"testing": True})
+    for partition in recorded_chain:
         populations.append(partition.population.values())
 
-    for c, partition in enumerate(pcompress.Replay(graph, "run.chain", geographic=geographic, updaters=my_updaters)):
+    for c, partition in enumerate(pcompress.Replay(graph, "run.chain", geographic=geographic, updaters={"population": updaters.Tally("TOTPOP", alias="population")})):
         new_populations.append(partition.population.values())
 
-    assert len(populations) == len(new_populations)
+    history = pcompress.History()
+    cloud_run = history.search_one(identifier = recorded_chain.identifier)
+    for c, p in enumerate(pcompress.Replay(graph, cloud_run, geographic=geographic, updaters={"population": updaters.Tally("TOTPOP", alias="population")})):
+        cloud_populations.append(partition.population.values())
 
-    for population, new_population in zip(populations, new_populations):
-        assert sorted(population) == sorted(new_population)
+    assert len(populations) == len(new_populations) == len(cloud_populations)
 
-@pytest.mark.parametrize("geographic", [True, False])
-def test_inverse(geographic):
+    for population, new_population, cloud_population in zip(populations, new_populations, cloud_populations):
+        assert sorted(population) == sorted(new_population) 
+        assert sorted(population) == sorted(cloud_population)
+
+@pytest.mark.parametrize("geographic, cloud", itertools.product([True, False], repeat=2))
+def test_inverse(geographic, cloud):
     partitions = []
     new_partitions = []
 
-    for partition in pcompress.Record(chain, "run.chain", extreme=False):
+    for partition in pcompress.Record(chain, "run.chain", extreme=False, cloud=cloud, metadata = {"testing": True}):
         assignment = partition.assignment.to_series().sort_index()
         assert len(partition.assignment.to_series())
         partitions.append(assignment)
@@ -95,15 +102,15 @@ def test_inverse(geographic):
         for i, each_value in enumerate(partition_assignment):
             assert each_value == new_partition_assignment[i], i
 
-@pytest.mark.parametrize("extreme, geographic, flips", itertools.product([True, False], repeat=3))
-def test_no_updater(extreme, geographic, flips):
+@pytest.mark.parametrize("extreme, geographic, flips, cloud", itertools.product([True, False], repeat=4))
+def test_no_updater(extreme, geographic, flips, cloud):
     """
     Test that population counts remain the same
     """
     populations = []
     new_populations = []
 
-    for partition in pcompress.Record(chain, "run.chain", extreme=extreme):
+    for partition in pcompress.Record(chain, "run.chain", extreme=extreme, cloud=cloud, metadata = {"testing": True}):
         assert partition.population.values()
 
     for c, partition in enumerate(pcompress.Replay(graph, "run.chain", geographic=geographic, flips=flips)):
