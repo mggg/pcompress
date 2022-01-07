@@ -18,8 +18,14 @@ pub fn encode<R: Read, W: Write>(
             // EOF; reset
             break;
         }
+
+        let trimmed_line = line.trim();
+        if trimmed_line.len() == 0 {
+            continue
+        }
+
         let mut mapping: Vec<usize> =
-            serde_json::from_str(line.trim()).expect("Could not read input.");
+            serde_json::from_str(trimmed_line).expect("Could not read input.");
         let (mut delta, _written) = compute_diff(&prev_mapping, &mapping, &mut delta);
 
         // See if we can swap district labels around for better compression
