@@ -18,7 +18,6 @@ class Record:
         chain: Iterable[Partition],
         filename,
         executable="pcompress",
-        # executable="pv",
         threads=None,
         extreme=True,
     ):
@@ -58,8 +57,8 @@ class Record:
     def __next__(self):
         try:
             step = next(self.chain)
-            assignment = list(step.assignment.to_series().sort_index().astype(int))
-            state = str(assignment).rstrip() + "\n"
+            assignment = [step.assignment[i] for i in sorted(step.assignment.to_dict().keys())]
+            state = str(assignment) + "\n"
             self.child.stdin.write(state.encode())
             return step
 
@@ -71,23 +70,6 @@ class Record:
             self.child.wait()
 
             raise
-
-    def sendline(self, state):
-        # bytestring = b""
-        counter = 0
-        limit = 1024
-        while counter < len(state):
-            if counter+limit < len(state):
-                # bytestring += state[counter:counter+limit]
-                self.child.send(state[counter:counter+limit])
-            else:
-                # bytestring += state[counter:]
-                self.child.send(state[counter:])
-            counter += limit
-
-        # assert len(bytestring) == len(state)
-        self.child.send("\n".encode())
-        return True
 
 class Replay:
     def __init__(
