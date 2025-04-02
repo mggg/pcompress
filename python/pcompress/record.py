@@ -57,8 +57,8 @@ class Record:
     def __next__(self):
         try:
             step = next(self.chain)
-            assignment = [step.assignment[i] for i in sorted(step.assignment.to_dict().keys())]
-            state = str(assignment) + "\n"
+            assignment = step.assignment.mapping.values()
+            state = str(list(assignment)) + "\n"
             self.child.stdin.write(state.encode())
             return step
 
